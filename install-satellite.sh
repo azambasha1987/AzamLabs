@@ -54,7 +54,7 @@ if [ -z "$_RAW_DIR" ] || [ "$_RAW_DIR" = "/dev" ] || [ ! -f "${_RAW_DIR}/install
     echo "[*] Running via curl|bash — self-cloning repo to /opt/azamlabs..."
     MYREPO_DIR="/opt/azamlabs"
     if [ ! -d "${MYREPO_DIR}/.git" ]; then
-        git clone --depth 1 https://github.com/azambasha1987/MyRepo.git "$MYREPO_DIR" 2>/dev/null \
+        git clone --depth 1 https://github.com/azambasha1987/AzamLabs.git "$MYREPO_DIR" 2>/dev/null \
             || { echo "[ERROR] Failed to self-clone repo. Check internet/GitHub access."; exit 1; }
     fi
     if [ -d "${MYREPO_DIR}/AzamLabs" ]; then
@@ -636,7 +636,7 @@ POOL_SEARCH_DIRS=(
 
 DEB_POOL_DIR=""
 for d in "${POOL_SEARCH_DIRS[@]}"; do
-    if [ -d "$d" ] && compgen -G "${d}/azamlabs-satellite_*.deb" >/dev/null 2>&1; then
+    if [ -d "$d" ] && ( compgen -G "${d}/azamlabs-satellite_*.deb" >/dev/null 2>&1 || compgen -G "${d}/pnetlab-satellite_*.deb" >/dev/null 2>&1 ); then
         DEB_POOL_DIR="$d"
         break
     fi
@@ -654,13 +654,14 @@ if [ -n "$DEB_POOL_DIR" ]; then
     )
 
     for prefix in "${PKG_ORDER[@]}"; do
-        deb_path=$(find "$DEB_POOL_DIR" -maxdepth 1 -name "${prefix}_*.deb" | sort -V | tail -n1 || true)
+        alt_prefix="${prefix/azamlabs/pnetlab}"
+        deb_path=$(find "$DEB_POOL_DIR" -maxdepth 1 \( -name "${prefix}_*.deb" -o -name "${alt_prefix}_*.deb" \) | sort -V | tail -n1 || true)
         if [ -n "$deb_path" ] && [ -f "$deb_path" ]; then
             echo "       -> Installing $(basename "$deb_path")..."
             dpkg-deb -x "$deb_path" / 2>/dev/null || true
             dpkg -i --force-depends --force-confdef --force-confold "$deb_path" 2>/dev/null || true
         else
-            echo "       [INFO] Package prefix not found: $prefix — skipping."
+            echo "       [INFO] Package prefix not found: $prefix (or $alt_prefix) — skipping."
         fi
     done
 

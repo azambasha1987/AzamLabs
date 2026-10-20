@@ -7,7 +7,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GITHUB_RAW="https://raw.githubusercontent.com/azambasha1987/MyRepo/main/AzamLabs/scripts"
+GITHUB_RAW="https://raw.githubusercontent.com/azambasha1987/AzamLabs/main/scripts"
 
 run_or_fetch() {
     local script_name="$1"

@@ -118,8 +118,8 @@ sync_from_github() {
     fi
 
     log_info "Connecting to GitHub to fetch the latest AzamLabs code..."
-    local github_url="https://github.com/azambasha1987/MyRepo.git"
-    local github_tar_url="https://github.com/azambasha1987/MyRepo/archive/refs/heads/main.tar.gz"
+    local github_url="https://github.com/azambasha1987/AzamLabs.git"
+    local github_tar_url="https://github.com/azambasha1987/AzamLabs/archive/refs/heads/main.tar.gz"
 
     local myrepo_dir="/opt/azamlabs"
     mkdir -p "$myrepo_dir" 2>/dev/null || true

@@ -34,7 +34,7 @@ if [ -z "$_RAW_DIR" ] || [ "$_RAW_DIR" = "/dev" ] || [ ! -f "${_RAW_DIR}/install
     echo "[*] Running via curl|bash — cloning repo to /opt/azamlabs for local pool access..."
     MYREPO_DIR="/opt/azamlabs"
     if [ ! -d "${MYREPO_DIR}/.git" ]; then
-        git clone --depth 1 https://github.com/azambasha1987/MyRepo.git "$MYREPO_DIR" 2>/dev/null \
+        git clone --depth 1 https://github.com/azambasha1987/AzamLabs.git "$MYREPO_DIR" 2>/dev/null \
             || { echo "[ERROR] Failed to self-clone repo. Check internet/GitHub access."; exit 1; }
     fi
     if [ -d "${MYREPO_DIR}/AzamLabs" ]; then
@@ -502,12 +502,12 @@ if [ -d "$LOCAL_POOL_CANDIDATE" ] && compgen -G "${LOCAL_POOL_CANDIDATE}/*.deb" 
     echo "      -> Local Debian pool found at $LOCAL_POOL_CANDIDATE — using it directly."
     DEB_POOL_DIR="$LOCAL_POOL_CANDIDATE"
 else
-    # Fallback: clone MyRepo (contains the .deb pool) into /opt/azamlabs
+    # Fallback: clone AzamLabs (contains the .deb pool) into /opt/azamlabs
     MYREPO_FALLBACK="/opt/azamlabs"
-    echo "      -> Local pool not found. Cloning MyRepo to $MYREPO_FALLBACK for package pool..."
+    echo "      -> Local pool not found. Cloning AzamLabs to $MYREPO_FALLBACK for package pool..."
     if [ ! -d "${MYREPO_FALLBACK}/.git" ]; then
-        git clone --depth 1 https://github.com/azambasha1987/MyRepo.git "$MYREPO_FALLBACK" 2>/dev/null \
-            || echo "      [WARNING] Could not clone MyRepo — skipping package installation."
+        git clone --depth 1 https://github.com/azambasha1987/AzamLabs.git "$MYREPO_FALLBACK" 2>/dev/null \
+            || echo "      [WARNING] Could not clone AzamLabs — skipping package installation."
     fi
     FALLBACK_POOL="${MYREPO_FALLBACK}/AzamLabs/debian/pool/resolute/main"
     if [ ! -d "$FALLBACK_POOL" ]; then
@@ -539,7 +539,8 @@ if [ -n "$DEB_POOL_DIR" ]; then
     )
 
     for prefix in "${PKG_PREFIXES[@]}"; do
-        deb_path=$(find "$DEB_POOL_DIR" -maxdepth 1 -name "${prefix}_*.deb" ! -name "azamlabs-satellite*" | sort -V | tail -n1 || true)
+        alt_prefix="${prefix/azamlabs/pnetlab}"
+        deb_path=$(find "$DEB_POOL_DIR" -maxdepth 1 \( -name "${prefix}_*.deb" -o -name "${alt_prefix}_*.deb" \) ! -name "*satellite*" | sort -V | tail -n1 || true)
         if [ -n "$deb_path" ] && [ -f "$deb_path" ]; then
             echo "      -> Installing $(basename "$deb_path")..."
             dpkg-deb -x "$deb_path" / 2>/dev/null || true

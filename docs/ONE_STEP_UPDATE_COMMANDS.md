@@ -20,7 +20,7 @@
 The Master Controller node runs the AzamLabs Web-GUI, Apache FastCGI, MySQL database, Guacamole console proxy, and cluster orchestration.
 
 > [!TIP]
-> **Automated In-Band GitHub Download**: When you run `sudo azam-update`, it automatically connects to GitHub (`azambasha1987/MyRepo`), pulls all updated files directly to `/opt/azambasha`, creates an atomic safety snapshot, and installs all fixes in a single step.
+> **Automated In-Band GitHub Download**: When you run `sudo azam-update`, it automatically connects to GitHub (`azambasha1987/AzamLabs`), pulls all updated files directly to `/opt/azambasha`, creates an atomic safety snapshot, and installs all fixes in a single step.
 
 ### A. Direct Execution on Master Node (SSH / Console)
 ```bash
@@ -29,7 +29,7 @@ sudo azam-update --master
 ```
 
 ### What Happens in the Master Node Update Pipeline:
-1. **GitHub In-Band Fetch**: Connects to GitHub (`azambasha1987/MyRepo`) and pulls/downloads latest repository code into `/opt/azambasha`.
+1. **GitHub In-Band Fetch**: Connects to GitHub (`azambasha1987/AzamLabs`) and pulls/downloads latest repository code into `/opt/azambasha`.
 2. **Safety Snapshot**: Captures timestamped `.tar.gz` checkpoint of `/opt/unetlab/{html/includes,templates,data/branding}`.
 3. **Permanent Session Fix**: Configures 10-year session cookies (`Never-Logout`).
 4. **Lab Export & APT Fix**: Installs `zip`/`unzip`, handles nested folder structures.
@@ -56,7 +56,7 @@ sudo azam-update --master
 Satellite Worker nodes provide headless compute density, KVM virtualization, Soft-RoCE RDMA pipelines, and Docker container execution across cluster nodes.
 
 > [!TIP]
-> **Automated In-Band GitHub Download**: When you run `sudo azam-update --satellite`, it automatically connects to GitHub (`azambasha1987/MyRepo`), pulls all updated files directly to `/opt/azambasha`, creates an atomic safety snapshot, and installs all fixes in a single step.
+> **Automated In-Band GitHub Download**: When you run `sudo azam-update --satellite`, it automatically connects to GitHub (`azambasha1987/AzamLabs`), pulls all updated files directly to `/opt/azambasha`, creates an atomic safety snapshot, and installs all fixes in a single step.
 
 ### A. Direct Execution on Satellite Worker Node (SSH / Console)
 ```bash
@@ -65,7 +65,7 @@ sudo azam-update --satellite
 ```
 
 ### What Happens in the Satellite Worker Pipeline:
-1. **GitHub In-Band Fetch**: Connects to GitHub (`azambasha1987/MyRepo`) and pulls/downloads latest repository code into `/opt/azambasha`.
+1. **GitHub In-Band Fetch**: Connects to GitHub (`azambasha1987/AzamLabs`) and pulls/downloads latest repository code into `/opt/azambasha`.
 2. **Safety Snapshot**: Captures timestamped `.tar.gz` checkpoint of `/opt/unetlab/{html/includes,templates,data/branding}`.
 1. **OS Prerequisites**: Installs `swtpm`, `ovmf`, `rdma-core`, `libelf`, and `nodejs`.
 2. **Bridge LACP BPDU Forwarding**: Sets `group_fwd_mask = 0xffff` to allow LACP/LLDP transit.

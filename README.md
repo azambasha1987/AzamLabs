@@ -59,6 +59,35 @@ AzamLabs includes an extensive administrative and operational toolchain located 
 
 ---
 
+## Installation & Quickstart
+
+Deploy AzamLabs on a fresh Ubuntu 26.04 LTS ("Resolute") virtual machine or bare-metal host:
+
+### Master Controller Node Installation
+```bash
+# Clone AzamLabs standalone repository
+git clone https://github.com/azambasha1987/AzamLabs.git /opt/azamlabs
+
+# Launch unified Master installer
+cd /opt/azamlabs && sudo bash install.sh
+```
+
+### Satellite Worker Node Installation (Cluster Compute)
+```bash
+# Clone AzamLabs standalone repository
+git clone https://github.com/azambasha1987/AzamLabs.git /opt/azamlabs
+
+# Launch dedicated Satellite installer
+cd /opt/azamlabs && sudo bash install-satellite.sh
+```
+
+### Automated 1-Liner Bootstrap & Installation
+```bash
+curl -fsSL https://raw.githubusercontent.com/azambasha1987/AzamLabs/main/azambasha-bootstrap-and-install.sh | sudo bash
+```
+
+---
+
 ## Technical Documentation & Guides
 
 Comprehensive architecture and operations documentation is located in [`docs/`](docs/):
@@ -71,4 +100,15 @@ Comprehensive architecture and operations documentation is located in [`docs/`](
 - **AI Lab Builder & Ollama Architecture**: [`docs/AI_LAB_BUILDER_OLLAMA_GUIDE.md`](docs/AI_LAB_BUILDER_OLLAMA_GUIDE.md)
 - **Permanent Session Architecture**: [`docs/AZAMBASHA_PERMANENT_SESSION_GUIDE.md`](docs/AZAMBASHA_PERMANENT_SESSION_GUIDE.md)
 - **Lab Export & APT Operations**: [`docs/AZAMBASHA_EXPORT_AND_APT_FIX_GUIDE.md`](docs/AZAMBASHA_EXPORT_AND_APT_FIX_GUIDE.md)
+
+---
+
+## Decoupled Platform Ecosystem
+
+AzamLabs operates as part of the specialized standalone network emulation and automation repository suite:
+
+* **[AzamLabs](https://github.com/azambasha1987/AzamLabs)**: Self-hosted virtual network emulation platform engine, hypervisor orchestration, and satellite clusters.
+* **[Azam-NG](https://github.com/azambasha1987/Azam-NG)**: Next-generation enterprise network virtualization suite and dark mode UI engine.
+* **[GNS3](https://github.com/azambasha1987/GNS3)**: AzamGNS3 3.1 enterprise edition, unified server daemon, and web management interface.
+* **[Automation](https://github.com/azambasha1987/Automation)**: Production Ansible playbooks, Python NetDevOps pipelines, and multi-vendor CI/CD lab automation.
 

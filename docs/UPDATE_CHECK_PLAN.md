@@ -61,7 +61,7 @@ To prevent regressions, version drift, and operational errors caused by prematur
 
 2. **Rule 2: Automated In-Band GitHub Download in One-Step Update (`sudo azam-update`)**
    - *Architecture Principle*: All updates must be deployable using exclusively the canonical one-step command `sudo azam-update`, with zero manual file transfers or complex multi-step options.
-   - *Mandate*: The update command (`sudo azam-update`) autonomously connects to GitHub (`azambasha1987/MyRepo`), pulls the latest code directly to the VM, creates a safety snapshot, and installs all fixes in a single execution. The only operator action is committing/pushing changes to GitHub (`git push origin main`), followed by running `sudo azam-update` on the VM.
+   - *Mandate*: The update command (`sudo azam-update`) autonomously connects to GitHub (`azambasha1987/AzamLabs`), pulls the latest code directly to the VM, creates a safety snapshot, and installs all fixes in a single execution. The only operator action is committing/pushing changes to GitHub (`git push origin main`), followed by running `sudo azam-update` on the VM.
 
 3. **Rule 3: Never Assume Upstream Git Commits Mean the Signed Binary Package is Ready**
    - *Assumption Risk*: Seeing a commit or tag in Git and assuming the corresponding `.deb` package in the network-install channel is functional.
@@ -193,10 +193,10 @@ Systematically audit the latest version of AzamLabs for **all newly introduced f
 - **Post-Confirmation Transition**: Once approved, changes are committed and pushed to GitHub (`git push origin main`). Proceed directly to **Step 5** on the target node. `sudo azam-update` automatically downloads all updated files from GitHub and executes the installation in a single step.
 
 ### Step 5: One-Step Turnkey Update Command Execution (Master & Satellite)
-Deploy approved updates and architecture optimizations across cluster nodes using canonical 1-step commands. *(Full reference guide: [ONE_STEP_UPDATE_COMMANDS.md](file:///e:/Git/AzamLabs/docs/ONE_STEP_UPDATE_COMMANDS.md))*.
+Deploy approved updates and architecture optimizations across cluster nodes using canonical 1-step commands. *(Full reference guide: [ONE_STEP_UPDATE_COMMANDS.md](ONE_STEP_UPDATE_COMMANDS.md))*.
 
 > [!TIP]
-> **Automated GitHub Ingestion**: Running `sudo azam-update` automatically connects to GitHub (`azambasha1987/MyRepo`), downloads the latest repository code directly to `/opt/azambasha` or `/opt/azamlabs`, creates an atomic safety snapshot, and installs all fixes in one shot. Zero manual file transfers or extra commands required.
+> **Automated GitHub Ingestion**: Running `sudo azam-update` automatically connects to GitHub (`azambasha1987/AzamLabs`), downloads the latest repository code directly to `/opt/azambasha` or `/opt/azamlabs`, creates an atomic safety snapshot, and installs all fixes in one shot. Zero manual file transfers or extra commands required.
 
 #### A. Master Controller Node One-Line Update Command
 - **Local VM Execution (SSH / Terminal)**:

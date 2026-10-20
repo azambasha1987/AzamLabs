@@ -124,47 +124,46 @@ sync_from_github() {
     local myrepo_dir="/opt/azamlabs"
     mkdir -p "$myrepo_dir" 2>/dev/null || true
 
+    local synced=0
     if [ -d "${myrepo_dir}/.git" ]; then
         log_info "Synchronizing Git repository: ${myrepo_dir}..."
         git -C "$myrepo_dir" remote set-url origin "$github_url" 2>/dev/null || true
-        git -C "$myrepo_dir" fetch origin main --quiet 2>/dev/null || true
-        git -C "$myrepo_dir" reset --hard origin/main --quiet 2>/dev/null || true
-        git -C "$myrepo_dir" clean -fd --quiet 2>/dev/null || true
-        log_ok "Synchronized ${myrepo_dir} to latest commit from GitHub (origin/main)."
-    else
-        log_info "Cloning latest AzamLabs repository into ${myrepo_dir}..."
-        local clone_ok=0
-        if command -v git &>/dev/null; then
-            if [ ! -d "$myrepo_dir" ] || [ -z "$(ls -A "$myrepo_dir" 2>/dev/null)" ]; then
-                git clone --depth 1 "$github_url" "$myrepo_dir" 2>/dev/null && clone_ok=1
-            else
-                local tmp_clone
-                tmp_clone="$(mktemp -d /tmp/azam-repo.XXXXXX)"
-                if git clone --depth 1 "$github_url" "$tmp_clone" 2>/dev/null; then
-                    rm -rf "${myrepo_dir:?}"/*
-                    cp -a "${tmp_clone}/.git" "$myrepo_dir/" 2>/dev/null || true
-                    cp -a "${tmp_clone}/." "$myrepo_dir/" 2>/dev/null || true
-                    rm -rf "$tmp_clone"
-                    clone_ok=1
-                fi
-            fi
+        if git -C "$myrepo_dir" fetch origin main 2>/dev/null && \
+           git -C "$myrepo_dir" reset --hard origin/main 2>/dev/null && \
+           git -C "$myrepo_dir" clean -fd 2>/dev/null; then
+            synced=1
+            log_ok "Synchronized ${myrepo_dir} to latest commit from GitHub (origin/main)."
+        else
+            log_warn "Git fetch failed on existing local repository (shallow or history mismatch). Re-cloning..."
+            rm -rf "${myrepo_dir:?}"/* "${myrepo_dir}/.git" 2>/dev/null || true
         fi
-        if [ "$clone_ok" -eq 1 ]; then
-            log_ok "Fetched latest codebase from GitHub via Git clone."
+    fi
+
+    if [ "$synced" -eq 0 ]; then
+        log_info "Cloning latest AzamLabs repository into ${myrepo_dir}..."
+        if git clone --depth 1 "$github_url" "$myrepo_dir" 2>/dev/null; then
+            synced=1
+            log_ok "Fetched latest codebase from GitHub via fresh Git clone."
         elif command -v curl &>/dev/null; then
             mkdir -p "$myrepo_dir" 2>/dev/null || true
-            curl -skL "$github_tar_url" | tar -xz -C "$myrepo_dir" --strip-components=1 2>/dev/null || true
-            log_ok "Fetched latest codebase from GitHub via public archive tarball."
+            if curl -skL "$github_tar_url" | tar -xz -C "$myrepo_dir" --strip-components=1 2>/dev/null; then
+                synced=1
+                log_ok "Fetched latest codebase from GitHub via public archive tarball."
+            fi
         elif command -v wget &>/dev/null; then
             mkdir -p "$myrepo_dir" 2>/dev/null || true
-            wget -qO- "$github_tar_url" | tar -xz -C "$myrepo_dir" --strip-components=1 2>/dev/null || true
-            log_ok "Fetched latest codebase from GitHub via public archive tarball."
+            if wget -qO- "$github_tar_url" | tar -xz -C "$myrepo_dir" --strip-components=1 2>/dev/null; then
+                synced=1
+                log_ok "Fetched latest codebase from GitHub via public archive tarball."
+            fi
         else
             log_warn "Installing git to complete repository synchronization..."
             apt-get update -qq >/dev/null 2>&1 || true
             apt-get install -y -qq git >/dev/null 2>&1 || true
-            git clone --depth 1 "$github_url" "$myrepo_dir" 2>/dev/null || true
-            log_ok "Fetched latest codebase from GitHub via Git clone."
+            if git clone --depth 1 "$github_url" "$myrepo_dir" 2>/dev/null; then
+                synced=1
+                log_ok "Fetched latest codebase from GitHub via Git clone."
+            fi
         fi
     fi
 

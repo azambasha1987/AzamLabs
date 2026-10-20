@@ -1945,9 +1945,74 @@
     });
 
     $(document).on('keydown', function(e) {
+      var tag = (e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '');
+      var isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || (e.target && e.target.isContentEditable) || $(e.target).closest('[contenteditable="true"]').length > 0;
+
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         toggleAiDrawer();
+        return;
+      }
+
+      // Ignore standard canvas shortcuts if inside an editable text element
+      if (isInput) return;
+
+      // F2: Rename selected node
+      if (e.key === 'F2' || e.keyCode === 113) {
+        var selNodes = $('.node_frame.ui-selected, .node_frame.free-selected');
+        if (selNodes.length === 1) {
+          e.preventDefault();
+          var nodeId = (selNodes[0].id || '').replace(/^node/, '');
+          if (nodeId) {
+            var editAction = $('[data-path="nodes/edit/' + nodeId + '"], [data-action="node_edit"][data-id="' + nodeId + '"]');
+            if (editAction.length > 0) {
+              editAction.first().click();
+            } else {
+              selNodes.first().trigger('dblclick');
+            }
+          }
+        }
+        return;
+      }
+
+      // Ctrl+A / Cmd+A: Select all canvas nodes
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'a') {
+        var allNodes = $('.node_frame');
+        if (allNodes.length > 0) {
+          e.preventDefault();
+          allNodes.addClass('ui-selected free-selected');
+          if (window.freeSelectedNodes && window.nodes) {
+            window.freeSelectedNodes = Object.keys(window.nodes).map(function(k) { return window.nodes[k]; });
+          }
+        }
+        return;
+      }
+
+      // Delete or Backspace: Safe delete selected nodes with confirmation
+      if (e.key === 'Delete' || e.keyCode === 46 || e.key === 'Backspace' || e.keyCode === 8) {
+        var targetNodes = $('.node_frame.ui-selected, .node_frame.free-selected');
+        if (targetNodes.length > 0) {
+          e.preventDefault();
+          var running = [];
+          targetNodes.each(function() {
+            var nid = (this.id || '').replace(/^node/, '');
+            var nodeData = (window.nodes && window.nodes[nid]) || {};
+            if (nodeData.status && nodeData.status > 0) {
+              running.push(nodeData.name || ('Node ' + nid));
+            }
+          });
+          if (running.length > 0) {
+            if (window.alert) {
+              alert('Running nodes cannot be deleted. Please stop them first:\n- ' + running.join('\n- '));
+            }
+            return;
+          }
+          var firstId = (targetNodes[0].id || '').replace(/^node/, '');
+          var delBtn = $('[data-path="nodes/delete/' + firstId + '"], [data-action="node_delete"]');
+          if (delBtn.length > 0) {
+            delBtn.first().click();
+          }
+        }
       }
     });
 
@@ -2219,7 +2284,11 @@
       '#' + PANEL_ID + ' button:disabled{opacity:.5;cursor:not-allowed}' +
       '@keyframes az-slide-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}' +
       '#pnq-azam-features:hover a, #pnq-git-vcs-entry:hover a{opacity:.85}' +
-      '#pnq-azam-features a, #pnq-git-vcs-entry a{transition:opacity .2s}';
+      '#pnq-azam-features a, #pnq-git-vcs-entry a{transition:opacity .2s}' +
+      '/* Smart Annotations & Pure Black Canvas Tags */' +
+      '.az-smart-tag-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:9999px;background:rgba(10,10,12,.95);border:1px solid rgba(59,130,246,.45);color:#f1f5f9;font-size:11px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.6);backdrop-filter:blur(8px);cursor:grab;user-select:none;transition:all .15s ease}' +
+      '.az-smart-tag-chip:hover{border-color:#38bdf8;box-shadow:0 0 10px rgba(56,189,248,.35)}' +
+      '.az-smart-group-outline{position:absolute;border-radius:10px;pointer-events:none;border:2px dashed rgba(56,189,248,.5);background:rgba(56,189,248,.03);transition:all .2s ease-out}';
     document.head.appendChild(s);
   }
 

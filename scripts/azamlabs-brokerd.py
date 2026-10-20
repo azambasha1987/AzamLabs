@@ -56,7 +56,7 @@ except Exception:      # pragma: no cover - broker refuses docker_create without
 
 SOCK_PATH = "/run/azamlabs/broker.sock"
 SOCK_GROUP = "www-data"
-MAX_REQUEST = 65536
+MAX_REQUEST = 1048576
 
 # Native RoCE endpoint controller (v1).  The guest agent has two fixed,
 # read-only status resources. Keep the transport limits here rather than
@@ -2889,7 +2889,7 @@ LAB_BRIDGE_RE = re.compile(
 # teardown path.  Their PHP caller intentionally keeps them alive; only
 # per-lab vnet bridges are eligible for net_delete.
 LAB_BRIDGE_DELETE_RE = re.compile(r"^(?=.{1,15}$)vnet[0-9]{1,6}_[0-9]{1,6}$")
-LAB_TAP_RE = re.compile(r"^vunl\d{1,6}_\d{1,6}(_\d{1,6})?$")
+LAB_TAP_RE = re.compile(r"^(vunl|ser)\d{1,6}_\d{1,6}(_\d{1,6})?$")
 
 
 def _require_bridge(br):

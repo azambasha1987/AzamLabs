@@ -1,6 +1,6 @@
 # Update Check Plan
 
-*Scan Timestamp: 2026-10-17 05:40:00 (IST / UTC+5:30)* | *UTC: 2026-10-17 00:10:00* | *Target Repository: netkillui/AzamLabsv8* | *Platform: Ubuntu 26.04 (Resolute)*
+*Scan Timestamp: 2026-10-20 19:05:00 (IST / UTC+5:30)* | *UTC: 2026-10-20 13:35:00* | *Target Repository: netkillui/AzamLabsv8 (v6.8.90resolute1)* | *Platform: Ubuntu 26.04 (Resolute)*
 
 ## Mandatory Production Safeguards (Zero-Glitch Protocol)
 
@@ -493,6 +493,9 @@ Status of multi-vendor virtualized routing, switching, and compute nodes across 
 
 | Issue # | State | Severity | Title | AzamLabs Resolution Status |
 |---|:---:|:---:|---|---|
+| [#75](https://codeberg.org/netkillui/AzamLabsv8/issues/75) | **OPEN** | `LOW` | Network Cloud repositioning issue | IMMUNIZED in AzamLabs (Network cloud anchor coordinate persistence & pnet0-pnet9 bridge binding) |
+| [#74](https://codeberg.org/netkillui/AzamLabsv8/issues/74) | **CLOSED** | `HIGH` | IOL nodes fail to start with ≥8 interface groups | RESOLVED & ADOPTED in AzamLabs (MAX_REQUEST raised to 1MB in azamlabs-brokerd.py) |
+| [#73](https://codeberg.org/netkillui/AzamLabsv8/issues/73) | **OPEN** | `LOW` | Icon resizing limitation on canvas | IMMUNIZED in AzamLabs (Canvas vector scaling down to 32px without clipping) |
 | [#72](https://codeberg.org/netkillui/AzamLabsv8/issues/72) | **OPEN** | `MEDIUM` | Workbook feature in this version | IMMUNE & ALREADY SOLVED in AzamLabs (Universal Lab Importer + Day-0 config & workbook viewer tabs) |
 | [#71](https://codeberg.org/netkillui/AzamLabsv8/issues/71) | **CLOSED** | `MEDIUM` | Keep Alive problem | ADOPT & HARMONIZE in AzamLabs (Native IOL L1 keepalive bridge detection + dynamic C-shim) |
 | [#70](https://codeberg.org/netkillui/AzamLabsv8/issues/70) | **CLOSED** | `LOW` | Issue while onboard FortiGate | IMMUNE in AzamLabs (CRLF line-ending normalization in azambasha-console-fix.sh) |

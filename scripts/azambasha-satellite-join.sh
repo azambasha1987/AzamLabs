@@ -12,7 +12,11 @@
 #                                       --name "Satellite-01" --psk <64_HEX_KEY>
 #   sudo bash azambasha-satellite-join.sh --status
 # ==============================================================================
-set -euo pipefail
+set -eo pipefail
+
+SRC_LOC="${BASH_SOURCE[0]:-$0}"
+SCRIPT_LOC="$(cd "$(dirname "$SRC_LOC")" 2>/dev/null && pwd || echo "/opt/unetlab/scripts")"
+set -u
 
 C_RESET="\033[0m"
 C_BOLD="\033[1m"
@@ -339,7 +343,7 @@ with open(cert_path, "r") as f:
     der = ssl.PEM_cert_to_DER_cert(f.read())
 cert_fp = "sha256:" + hashlib.sha256(der).hexdigest()
 
-pkg_ver = "6.8.85resolute1"
+pkg_ver = "6.8.90resolute1"
 found_ver = False
 for v_file in ("/opt/unetlab/VERSION", "/opt/azambasha/VERSION", "/etc/azamlabs-version"):
     try:
@@ -495,7 +499,7 @@ fi
 
 # Step 8: Apply High-Density Heavy Node Memory & CPU Optimization
 log_info "[8/8] Enforcing High-Density Heavy Node Optimizer on Satellite..."
-SCRIPT_LOC="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/opt/unetlab/scripts")"
+# SCRIPT_LOC resolved at script initialization
 if [ -f /opt/unetlab/scripts/azambasha-heavy-node-optimizer.sh ]; then
     bash /opt/unetlab/scripts/azambasha-heavy-node-optimizer.sh --satellite 2>/dev/null || true
     [ -f /opt/unetlab/scripts/azambasha-fix-node-startup.sh ] && bash /opt/unetlab/scripts/azambasha-fix-node-startup.sh 2>/dev/null || true

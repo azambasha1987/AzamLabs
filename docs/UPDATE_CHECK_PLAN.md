@@ -251,6 +251,7 @@ All recurring checks, sandboxed diff audits, and administrative reviews execute 
 | **Execution (v6.8.86 Implementation)** | **Thu, 08 Oct 2026, 06:10 IST** | 08 Oct 2026, 00:40 UTC | v6.8.86 Implementation | Upstream v6.8.86 (midpoint/curviness controls, linkwatchd protocol dissection, stale node cleanup) ingested; Issues #54–#61 audited & immunized; 61 issues tracked. | ✅ `COMPLETED` |
 | **Execution (v6.8.87 Implementation)** | **Fri, 09 Oct 2026, 07:48 IST** | 09 Oct 2026, 02:18 UTC | v6.8.87 Implementation | Upstream v6.8.87 (parallel link fanning, interface chip hover glow, SD-WAN export, external telnet node titles) ingested; Issues #60–#63 audited & immunized; 63 issues tracked. | ✅ `COMPLETED` |
 | **Execution (v6.8.89 Implementation)** | **Sat, 17 Oct 2026, 05:40 IST** | 17 Oct 2026, 00:10 UTC | v6.8.89 Implementation | Upstream v6.8.89 & v6.8.88 ingested; Broker v2, native IOL keepalives, satellite node verbs without DB, Windows virtio-win ISO, XRd/cEOS/SRLinux enhancements; Issues #64–#72 audited & immunized; 72 issues tracked; Step 4 Human Confirmation fulfilled. | ✅ `COMPLETED` |
+| **Execution (v6.8.90 Implementation)** | **Tue, 20 Oct 2026, 19:15 IST** | 20 Oct 2026, 13:45 UTC | v6.8.90 Implementation | Upstream v6.8.90resolute1 ingested; Broker v2 1MB batch limits (Issue #74), serial tap cleanup (Issue #71), Annotations v2 & smart chips, canvas shortcuts (F2, Ctrl+A, Delete), dual-arch templates (Windows virtio-win, Nokia SR Linux, Arista cEOS); Issues #73–#75 audited & immunized; 75 issues tracked; Step 4 Human Confirmation fulfilled. | ✅ `COMPLETED` |
 | **Cycle 1** | **Sat, 19 Dec 2026, 09:00 IST** | 19 Dec 2026, 03:30 UTC | Q4 2026 Check | Q4 upstream diff audit; Issue #34 canvas zoom retention review; package release sync. | ⏳ `SCHEDULED` |
 | **Cycle 2** | **Fri, 19 Mar 2027, 09:00 IST** | 19 Mar 2027, 03:30 UTC | Q1 2027 Check | Q1 2027 upstream diff audit; Ubuntu 26.04 Resolute point release kernel sanity check. | ⏳ `SCHEDULED` |
 | **Cycle 3** | **Sat, 19 Jun 2027, 09:00 IST** | 19 Jun 2027, 03:30 UTC | Q2 2027 Check | Q2 2027 upstream diff audit; Heavy node templates & multi-disk QEMU validation. | ⏳ `SCHEDULED` |
@@ -260,11 +261,11 @@ All recurring checks, sandboxed diff audits, and administrative reviews execute 
 
 ## Executive Summary
 
-- **Total Tracked Issues**: 72 (2 Open upstream, 70 Closed / Mitigated in AzamLabs)
-- **Latest Upstream Version Audited**: `v6.8.89` (Package: `6.8.89resolute1`, Released: Oct 16, 2026)
-- **Intermediate Upstream Version Audited**: `v6.8.88` (Package: `6.8.88resolute1`, Released: Oct 11, 2026)
-- **Latest Upstream Version Implemented**: `v6.8.89` (Package: `6.8.89resolute1`)
-- **Web-GUI Display Status**: Synchronized with latest implemented release (`AzamLabs v6.8.89`).
+- **Total Tracked Issues**: 75 (2 Open upstream, 73 Closed / Mitigated in AzamLabs)
+- **Latest Upstream Version Audited**: `v6.8.90` (Package: `6.8.90resolute1`, Released: Oct 20, 2026)
+- **Intermediate Upstream Version Audited**: `v6.8.89` (Package: `6.8.89resolute1`, Released: Oct 16, 2026)
+- **Latest Upstream Version Implemented**: `v6.8.90` (Package: `6.8.90resolute1`)
+- **Web-GUI Display Status**: Synchronized with latest implemented release (`AzamLabs v6.8.90`).
 - **Recent Upstream Commits**: 45 commits inspected (including commits `daa281d7`, `c49b4d94`, `0693c9b5`, `39bad2ab`, `0b83e121`, `d7a11e06`, `fdb67b66`).
 - **Audit Cadence**: Quarterly (Every 3 Months) locked to Indian Standard Time (IST - UTC+5:30).
 - **Platform Alignment**: Native Ubuntu 26.04 Resolute & Linux Kernel 7.0 stack verified.
@@ -312,12 +313,12 @@ Audits the reliability of detected upstream releases before cluster deployment:
 > [!IMPORTANT]
 > ### Authoritative Web-GUI Version Alignment
 > The Web-GUI Version display (`/main/#/version`) dynamically reflects the latest release implemented rather than remaining frozen at legacy placeholders:
-> - **Implemented Release Version**: `v6.8.87`
-> - **Implemented Package Version**: `6.8.87resolute1`
-> - **Header Title**: `AzamLabs v6.8.87`
-> - **Release Row**: `v6.8.87`
-> - **Package Row**: `6.8.87resolute1`
-> - **Database Setting**: `azamlabs_db.control.ctrl_version` = `6.8.87`
+> - **Implemented Release Version**: `v6.8.90`
+> - **Implemented Package Version**: `6.8.90resolute1`
+> - **Header Title**: `AzamLabs v6.8.90`
+> - **Release Row**: `v6.8.90`
+> - **Package Row**: `6.8.90resolute1`
+> - **Database Setting**: `azamlabs_db.control.ctrl_version` = `6.8.90`
 
 Whenever new features or bug fixes from higher upstream versions are integrated, `scripts/azambasha-sync-gui-version.sh` automatically updates `/opt/unetlab/html/includes/version.php` and the database control table.
 

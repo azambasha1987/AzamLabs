@@ -126,6 +126,7 @@ sync_from_github() {
 
     if [ -d "${myrepo_dir}/.git" ]; then
         log_info "Synchronizing Git repository: ${myrepo_dir}..."
+        git -C "$myrepo_dir" remote set-url origin "$github_url" 2>/dev/null || true
         git -C "$myrepo_dir" fetch origin main --quiet 2>/dev/null || true
         git -C "$myrepo_dir" reset --hard origin/main --quiet 2>/dev/null || true
         git -C "$myrepo_dir" clean -fd --quiet 2>/dev/null || true
@@ -167,9 +168,14 @@ sync_from_github() {
         fi
     fi
 
+    # Clean up legacy nested directory if left over from previous monolithic repo
+    if [ -d "${myrepo_dir}/AzamLabs" ] && [ -f "${myrepo_dir}/VERSION" ]; then
+        rm -rf "${myrepo_dir}/AzamLabs" 2>/dev/null || true
+    fi
+
     # Locate source AzamLabs directory inside repository
     local src_repo="${myrepo_dir}"
-    if [ -d "${myrepo_dir}/AzamLabs" ]; then
+    if [ -d "${myrepo_dir}/AzamLabs" ] && [ ! -f "${myrepo_dir}/VERSION" ]; then
         src_repo="${myrepo_dir}/AzamLabs"
     fi
 

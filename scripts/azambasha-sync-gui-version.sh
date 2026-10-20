@@ -60,15 +60,14 @@ fi
 # Auto-detect latest release from repo or installed packages
 if [ "$TARGET_INPUT" = "auto" ] || [ -z "$TARGET_INPUT" ]; then
     BASE_DETECT=""
-    # Search all candidate VERSION file locations
+    # Search all candidate VERSION file locations (repo candidates first, then system paths)
     for v_candidate in \
-        "${REPO_ROOT}/VERSION" \
-        "/opt/azamlabs/AzamLabs/VERSION" \
-        "/opt/azamlabs/EMULATOR/AzamLabs/VERSION" \
+        "/opt/azamlabs/VERSION" \
         "/opt/azambasha/VERSION" \
-        "/opt/unetlab/VERSION" \
+        "${SCRIPT_DIR}/../VERSION" \
+        "${REPO_ROOT}/VERSION" \
         "/etc/azamlabs-version" \
-        "${SCRIPT_DIR}/../VERSION"; do
+        "/opt/unetlab/VERSION"; do
         if [ -f "$v_candidate" ]; then
             BASE_DETECT="$(grep -E '^PACKAGE_VERSION=' "$v_candidate" 2>/dev/null | cut -d'=' -f2 | tr -d ' \r\n' || true)"
             [ -n "$BASE_DETECT" ] && break
@@ -77,8 +76,9 @@ if [ "$TARGET_INPUT" = "auto" ] || [ -z "$TARGET_INPUT" ]; then
     if [ -z "$BASE_DETECT" ]; then
         for doc_candidate in \
             "${REPO_ROOT}/docs/UPDATE_CHECK_PLAN.md" \
-            "/opt/azamlabs/EMULATOR/AzamLabs/docs/UPDATE_CHECK_PLAN.md" \
-            "/opt/azambasha/docs/UPDATE_CHECK_PLAN.md"; do
+            "/opt/azamlabs/docs/UPDATE_CHECK_PLAN.md" \
+            "/opt/azambasha/docs/UPDATE_CHECK_PLAN.md" \
+            "/opt/unetlab/docs/UPDATE_CHECK_PLAN.md"; do
             if [ -f "$doc_candidate" ]; then
                 BASE_DETECT="$(grep -oP '(?<=Implemented Package Version\*\*: `)[^`]+' "$doc_candidate" 2>/dev/null | head -n1 || true)"
                 [ -n "$BASE_DETECT" ] && break
@@ -86,7 +86,7 @@ if [ "$TARGET_INPUT" = "auto" ] || [ -z "$TARGET_INPUT" ]; then
         done
     fi
     if [ -z "$BASE_DETECT" ]; then
-        BASE_DETECT="6.8.87resolute1"
+        BASE_DETECT="6.8.90resolute1"
     fi
     TARGET_INPUT="$BASE_DETECT"
 fi

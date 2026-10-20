@@ -13,7 +13,7 @@
 # ==============================================================================
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/opt/unetlab/scripts")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "/opt/unetlab/scripts")"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 log_info() { echo -e "\033[1;34m[*] $*\033[0m"; }

@@ -5,10 +5,11 @@
 #
 # Supports piped execution: curl -fsSL https://.../azamlabs-apply-all-fixes.sh | sudo bash
 # ==============================================================================
-set -euo pipefail
+set -eo pipefail
 
 # Resolve physical script location across symlinks (e.g. /usr/local/bin/azam-menu, /usr/local/bin/azam-fix)
 SRC_LOC="${BASH_SOURCE[0]:-$0}"
+set -u
 REAL_PATH="$(realpath "$SRC_LOC" 2>/dev/null || readlink -f "$SRC_LOC" 2>/dev/null || echo "$SRC_LOC")"
 SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" 2>/dev/null && pwd || echo "")"
 if [ ! -f "${SCRIPT_DIR}/azambasha-speed-optimizer.sh" ]; then

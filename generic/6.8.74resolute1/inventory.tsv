@@ -1,0 +1,6 @@
+package	version	filename	arch	size
+azamlabs-docker	6.8.74resolute1	azamlabs-docker_6.8.74resolute1_amd64.deb	amd64	3610
+azamlabs-qemu	6.8.74resolute1	azamlabs-qemu_6.8.74resolute1_amd64.deb	amd64	1275140
+azamlabs-satellite	6.8.74resolute1	azamlabs-satellite_6.8.74resolute1_amd64.deb	amd64	82342146
+azamlabs-vpcs	6.8.74resolute1	azamlabs-vpcs_6.8.74resolute1_amd64.deb	amd64	86668
+azamlabs-bridge-dkms	6.8.74resolute1	azamlabs-bridge-dkms_6.8.74resolute1_all.deb	all	142376

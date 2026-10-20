@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AzamLabs Master Bootstrap & Installer for Ubuntu 26.04+ (Resolute)
+# 
+# Execution Flow:
+#   1. Pre-installs and validates ALL kernel modules, system packages, PHP/Python
+#      runtimes, and 32-bit libraries required by Ubuntu 26.04+.
+#   2. Launches the AzamLabs core software installation and database setup.
+#   3. Applies permanent network engine, bridge supervisor, and hardware branding.
+# ==============================================================================
+set -euo pipefail
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "[ERROR] This installer must be run as root: sudo bash $0" >&2
+    exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/opt/azambasha")"
+mkdir -p /opt/azamlabs 2>/dev/null || true
+ln -sfn "$SCRIPT_DIR" /opt/azamlabs 2>/dev/null || true
+
+echo "============================================================"
+echo "    AzamLabs Master Bootstrap & Installer (Ubuntu 26.04+)   "
+echo "============================================================"
+echo "[*] Working Directory: $SCRIPT_DIR"
+echo "[*] Start Time       : $(date)"
+echo "============================================================"
+
+# --- Step 1: Install All OS Modules & System Prerequisites ---
+echo ""
+echo ">>> STAGE 1: Provisioning All OS Modules & Kernel Drivers..."
+PREREQ_SCRIPT="${SCRIPT_DIR}/scripts/azambasha-os-prerequisites.sh"
+if [ -f "$PREREQ_SCRIPT" ]; then
+    bash "$PREREQ_SCRIPT"
+else
+    echo "      -> Fetching OS prerequisites script..."
+    PREREQ_URL="https://raw.githubusercontent.com/azambasha1987/MyRepo/main/AzamLabs/scripts/azambasha-os-prerequisites.sh"
+    curl -fsSL --connect-timeout 5 "$PREREQ_URL" -o /tmp/azambasha-os-prerequisites.sh 2>/dev/null || true
+    if [ -f /tmp/azambasha-os-prerequisites.sh ]; then
+        bash /tmp/azambasha-os-prerequisites.sh
+        rm -f /tmp/azambasha-os-prerequisites.sh
+    fi
+fi
+
+# Parse Static IP options for Stage 3 enforcement
+STATIC_IP=""
+STATIC_GW=""
+ARGS=("$@")
+for ((i=0; i<${#ARGS[@]}; i++)); do
+    if [[ "${ARGS[i]}" == "--static" || "${ARGS[i]}" == "-s" ]]; then
+        STATIC_IP="${ARGS[i+1]:-}"
+    elif [[ "${ARGS[i]}" == "--gateway" || "${ARGS[i]}" == "-g" ]]; then
+        STATIC_GW="${ARGS[i+1]:-}"
+    fi
+done
+
+# --- Step 2: Launch AzamLabs Software Installation ---
+echo ""
+echo ">>> STAGE 2: Installing AzamLabs Core Software & Packages..."
+INSTALLER_SCRIPT="${SCRIPT_DIR}/install.sh"
+if [ -f "$INSTALLER_SCRIPT" ]; then
+    bash "$INSTALLER_SCRIPT" "$@"
+else
+    echo "[ERROR] Core installer ($INSTALLER_SCRIPT) not found." >&2
+    exit 1
+fi
+
+# --- Step 3: Enforce Permanent Network Engine & Post-Install Fixes ---
+echo ""
+echo ">>> STAGE 3: Enforcing Permanent Network Engine & Supervisor..."
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-eth0-permanent.py" ]; then
+    python3 "${SCRIPT_DIR}/scripts/azambasha-fix-eth0-permanent.py" || true
+fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-network.py" ]; then
+    python3 "${SCRIPT_DIR}/scripts/azambasha-fix-network.py" || true
+fi
+if [ -n "$STATIC_IP" ] && [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-network-boot.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-fix-network-boot.sh" "$STATIC_IP" "255.255.255.0" "$STATIC_GW" || true
+fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-web-credentials.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-fix-web-credentials.sh" || true
+fi
+if [ -f "${SCRIPT_DIR}/VERSION" ]; then
+    mkdir -p /opt/unetlab 2>/dev/null || true
+    cp -f "${SCRIPT_DIR}/VERSION" /opt/unetlab/VERSION 2>/dev/null || true
+    cp -f "${SCRIPT_DIR}/VERSION" /etc/azamlabs-version 2>/dev/null || true
+fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-sync-gui-version.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-sync-gui-version.sh" auto || true
+elif [ -f "/opt/unetlab/scripts/azambasha-sync-gui-version.sh" ]; then
+    bash "/opt/unetlab/scripts/azambasha-sync-gui-version.sh" auto || true
+fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-cluster.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-fix-cluster.sh" || true
+elif [ -f "/opt/unetlab/scripts/azambasha-fix-cluster.sh" ]; then
+    bash "/opt/unetlab/scripts/azambasha-fix-cluster.sh" || true
+fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-heavy-node-optimizer.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-heavy-node-optimizer.sh" --master 2>/dev/null || true
+elif [ -f "/opt/unetlab/scripts/azambasha-heavy-node-optimizer.sh" ]; then
+    bash "/opt/unetlab/scripts/azambasha-heavy-node-optimizer.sh" --master 2>/dev/null || true
+fi
+if [ -d "${SCRIPT_DIR}/html/templates" ]; then
+    mkdir -p /opt/unetlab/html/templates/intel /opt/unetlab/html/templates/amd 2>/dev/null || true
+    cp -rf "${SCRIPT_DIR}"/html/templates/* /opt/unetlab/html/templates/ 2>/dev/null || true
+    cp -f "${SCRIPT_DIR}"/html/templates/intel/*.yml /opt/unetlab/html/templates/ 2>/dev/null || true
+fi
+if [ -d "${SCRIPT_DIR}/html/azam-ops" ]; then
+    mkdir -p /opt/unetlab/html 2>/dev/null || true
+    cp -rf "${SCRIPT_DIR}"/html/azam-ops /opt/unetlab/html/ 2>/dev/null || true
+fi
+for s_dir in "${SCRIPT_DIR}/scripts" "/opt/azambasha/scripts" "/opt/unetlab/scripts"; do
+    if [ -d "$s_dir" ]; then
+        ln -sf "${s_dir}/azambasha-update.sh" /usr/local/bin/azam-update 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-quarterly-audit.sh" /usr/local/bin/azam-audit 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-apply-all-fixes.sh" /usr/local/bin/azam-menu 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-apply-all-fixes.sh" /usr/local/bin/azam-fix 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-satellite-join.sh" /usr/local/bin/azam-satellite-join 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-satellite-join.sh" /usr/local/bin/azam-satellite-join 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-optimizer 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-heavy-optimizer 2>/dev/null || true
+        ln -sf "${s_dir}/apply-heavy-node-optimizer.sh" /usr/local/bin/apply-heavy-node-optimizer 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-dry-test.py" /usr/local/bin/azam-dry-test 2>/dev/null || true
+        ln -sf "${s_dir}/azambasha-health-check.sh" /usr/local/bin/azam-health 2>/dev/null || true
+        break
+    fi
+done
+
+echo ""
+echo "============================================================"
+echo " [SUCCESS] AzamLabs Fully Provisioned & Installed!          "
+echo "============================================================"
+echo "You can now access your server via Web Browser at:"
+REAL_IP="$(ip -o -4 addr show pnet0 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1 || ip -o -4 addr show 2>/dev/null | grep -v '127.0.0.1' | awk '{print $4}' | cut -d/ -f1 | head -n1 || echo 'YOUR_SERVER_IP')"
+echo "      https://${REAL_IP}/"
+echo "      http://${REAL_IP}/"
+echo "Default Credentials: admin / azam"
+echo "============================================================"

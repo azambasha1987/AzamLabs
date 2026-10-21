@@ -491,33 +491,95 @@ iface pnet0 inet dhcp
     subprocess.run(["systemctl", "enable", "--now", "systemd-networkd"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["netplan", "apply"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # 5. Direct kernel IP assignment check & enforcement
-    res_ip = subprocess.run(["ip", "-o", "-4", "addr", "show", "pnet0"], capture_output=True, text=True)
-    if not res_ip.stdout.strip():
-        if os.path.exists(ifaces_path):
-            try:
-                with open(ifaces_path, "r") as f:
-                    c = f.read()
-                if "iface pnet0 inet static" in c:
-                    m_ip = re.search(r'^\s*address\s+([0-9.]+)', c, re.MULTILINE)
-                    m_mask = re.search(r'^\s*netmask\s+([0-9.]+)', c, re.MULTILINE)
-                    m_gw = re.search(r'^\s*gateway\s+([0-9.]+)', c, re.MULTILINE)
-                    if m_ip:
-                        ip_val = m_ip.group(1).strip()
-                        mask_val = m_mask.group(1).strip() if m_mask else "255.255.255.0"
-                        cidr = 24
+    # 5. Direct kernel IP assignment check, Netplan sync & rogue DHCP purge
+    if os.path.exists(ifaces_path):
+        try:
+            with open(ifaces_path, "r") as f:
+                c = f.read()
+            if "iface pnet0 inet static" in c:
+                m_ip = re.search(r'^\s*address\s+([0-9.]+)', c, re.MULTILINE)
+                m_mask = re.search(r'^\s*netmask\s+([0-9.]+)', c, re.MULTILINE)
+                m_gw = re.search(r'^\s*gateway\s+([0-9.]+)', c, re.MULTILINE)
+                if m_ip:
+                    ip_val = m_ip.group(1).strip()
+                    mask_val = m_mask.group(1).strip() if m_mask else "255.255.255.0"
+                    cidr = 24
+                    try:
+                        cidr = ipaddress.IPv4Network(f"0.0.0.0/{mask_val}").prefixlen
+                    except Exception:
+                        pass
+
+                    # Ensure netplan is in sync with static configuration
+                    np_path = "/etc/netplan/01-azamlabs-netcfg.yaml"
+                    needs_np_update = False
+                    if not os.path.exists(np_path):
+                        needs_np_update = True
+                    else:
                         try:
-                            cidr = ipaddress.IPv4Network(f"0.0.0.0/{mask_val}").prefixlen
+                            with open(np_path, "r") as np_f:
+                                np_c = np_f.read()
+                            if "dhcp4: true" in np_c or ip_val not in np_c:
+                                needs_np_update = True
+                        except Exception:
+                            needs_np_update = True
+
+                    if needs_np_update:
+                        gw_line = ("      routes:\n        - to: default\n          via: " + m_gw.group(1).strip() + "\n") if m_gw else ""
+                        mac_line = ("      macaddress: " + mac + "\n") if mac else ""
+                        new_np = (
+                            "network:\n"
+                            "  version: 2\n"
+                            "  renderer: networkd\n"
+                            "  ethernets:\n"
+                            f"    {real_iface}:\n"
+                            "      dhcp4: false\n"
+                            "      dhcp6: false\n"
+                            "  bridges:\n"
+                            "    pnet0:\n"
+                            f"      interfaces: [{real_iface}]\n"
+                            f"{mac_line}"
+                            "      dhcp4: false\n"
+                            "      dhcp6: false\n"
+                            f"      addresses: [{ip_val}/{cidr}]\n"
+                            f"{gw_line}"
+                            "      nameservers:\n"
+                            "        addresses: [8.8.8.8, 1.1.1.1]\n"
+                            "      parameters:\n"
+                            "        stp: false\n"
+                            "        forward-delay: 0\n"
+                        )
+                        try:
+                            with open(np_path, "w") as np_f:
+                                np_f.write(new_np)
+                            os.chmod(np_path, 0o600)
+                            subprocess.run(["netplan", "apply"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         except Exception:
                             pass
+
+                    # Inspect all current addresses on pnet0 and delete any rogue/stale IPs
+                    res_all = subprocess.run(["ip", "-o", "-4", "addr", "show", "pnet0"], capture_output=True, text=True)
+                    has_target = False
+                    for line in res_all.stdout.splitlines():
+                        parts = line.split()
+                        if len(parts) >= 4:
+                            assigned_cidr = parts[3]
+                            assigned_ip = assigned_cidr.split("/")[0]
+                            if assigned_ip != ip_val:
+                                # Stale or rogue DHCP address detected! Delete immediately.
+                                subprocess.run(["ip", "addr", "del", assigned_cidr, "dev", "pnet0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            else:
+                                has_target = True
+
+                    # Ensure target static IP is assigned
+                    if not has_target:
                         subprocess.run(["ip", "addr", "flush", "dev", real_iface], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        subprocess.run(["ip", "addr", "flush", "dev", "pnet0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         subprocess.run(["ip", "addr", "add", f"{ip_val}/{cidr}", "dev", "pnet0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        if m_gw:
-                            gw_val = m_gw.group(1).strip()
-                            subprocess.run(["ip", "route", "replace", "default", "via", gw_val, "dev", "pnet0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            except Exception:
-                pass
+
+                    if m_gw:
+                        gw_val = m_gw.group(1).strip()
+                        subprocess.run(["ip", "route", "replace", "default", "via", gw_val, "dev", "pnet0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
 
     # 6. Enable Kernel Bridge Control Frame Forwarding (group_fwd_mask 65535)
     for i in range(10):
@@ -575,7 +637,7 @@ if os.path.exists(broker_path):
         code = f.read()
 
     start_marker = 'NETCFG_INTERFACES = "/etc/network/interfaces"'
-    end_marker = '# ---- cluster (multi-host) ----'
+    end_marker = '# ---- cluster (multi-host)'
 
     start_idx = code.find(start_marker)
     end_idx = code.find(end_marker)

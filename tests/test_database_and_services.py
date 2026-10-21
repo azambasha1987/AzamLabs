@@ -87,5 +87,18 @@ class TestDatabaseAndServices(unittest.TestCase):
         self.assertIn("GRANT ALL PRIVILEGES ON azamlabs_db.* TO 'azamlabs'@'localhost'", code)
         self.assertIn("schema/azamlabs_db.sql", code)
 
+    def test_broker_netcfg_dual_sync(self):
+        """Verify azamlabs-brokerd.py supports dynamic uplink discovery and Netplan synchronization."""
+        broker_file = os.path.join(SCRIPTS_DIR, "azamlabs-brokerd.py")
+        with open(broker_file, "r", encoding="utf-8") as f:
+            code = f.read()
+
+        self.assertIn("def _get_real_iface():", code, "azamlabs-brokerd.py must define dynamic physical interface discovery")
+        self.assertIn("/etc/netplan/01-azamlabs-netcfg.yaml", code, "verb_server_netcfg must synchronize Netplan 1.0 configuration")
+        self.assertIn("dhcp4-overrides", code, "Netplan DHCP must enforce MAC identifier")
+
+        sync_sh = os.path.join(SCRIPTS_DIR, "azambasha-sync-network-config.sh")
+        self.assertTrue(os.path.isfile(sync_sh), "azambasha-sync-network-config.sh must exist")
+
 if __name__ == "__main__":
     unittest.main()

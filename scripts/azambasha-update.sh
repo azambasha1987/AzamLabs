@@ -282,7 +282,7 @@ sync_from_github() {
     ln -sf /opt/unetlab/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-doctor 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-image-doctor 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstorm 2>/dev/null || true
-    ln -sf /opt/unetlab/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstorm 2>/dev/null || true
+    ln -sf /opt/unetlab/scripts/azambasha-sync-network-config.sh /usr/local/bin/azam-netcfg 2>/dev/null || true
 
     SCRIPT_DIR="/opt/unetlab/scripts"
 

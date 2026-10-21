@@ -131,7 +131,7 @@ with open(broker_path, "r", encoding="utf-8") as f:
     code = f.read()
 
 start_marker = 'NETCFG_INTERFACES = "/etc/network/interfaces"'
-end_marker = '# ---- cluster (multi-host) ----'
+end_marker = '# ---- cluster (multi-host)'
 
 start_idx = code.find(start_marker)
 end_idx = code.find(end_marker)

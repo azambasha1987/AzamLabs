@@ -2464,6 +2464,32 @@ NETCFG_BACKUP_DIR = BASE + "/data/netcfg-backups"
 RE_NETCFG_DOMAIN = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}[A-Za-z0-9])?$")
 
 
+def _get_real_iface():
+    brif = "/sys/class/net/pnet0/brif"
+    if os.path.isdir(brif):
+        for slave in sorted(os.listdir(brif)):
+            if os.path.exists("/sys/class/net/%s/device" % slave):
+                return slave
+    net_dir = "/sys/class/net"
+    if os.path.isdir(net_dir):
+        for dev in sorted(os.listdir(net_dir)):
+            if dev == "lo" or dev.startswith(("pnet", "docker", "veth", "virbr", "tun", "tap", "br-", "dummy", "wg", "zt")):
+                continue
+            if os.path.exists(os.path.join(net_dir, dev, "device")):
+                return dev
+    try:
+        res = subprocess.run(["ip", "-o", "link", "show"], capture_output=True, text=True, timeout=5)
+        for line in res.stdout.splitlines():
+            parts = line.split(":")
+            if len(parts) >= 2:
+                name = parts[1].strip().split("@")[0]
+                if name.startswith(("ens", "enp", "eno", "eth")) and not name.startswith("pnet"):
+                    return name
+    except Exception:
+        pass
+    return "ens33"
+
+
 def _netcfg_valid_netmask(mask):
     """True for a contiguous dotted IPv4 netmask (255.255.255.0 etc.)."""
     try:
@@ -2479,7 +2505,7 @@ def _netcfg_read_interfaces():
         with open(NETCFG_INTERFACES) as f:
             lines = f.read().split("\n")
     except OSError:
-        return {"mode": mode, "address": "", "netmask": "", "gateway": ""}
+        lines = []
     in_pnet0 = False
     for ln in lines:
         s = ln.strip()
@@ -2487,7 +2513,7 @@ def _netcfg_read_interfaces():
             in_pnet0 = True
             continue
         if in_pnet0:
-            if s.startswith("auto ") or s.startswith("iface ") and "pnet0" not in s:
+            if s.startswith("auto ") or (s.startswith("iface ") and "pnet0" not in s):
                 break
             m = re.match(r"iface pnet0 inet (\w+)", s)
             if m:
@@ -2503,6 +2529,18 @@ def _netcfg_read_interfaces():
         try:
             iface = ipaddress.IPv4Interface(address)
             address, netmask = str(iface.ip), str(iface.netmask)
+        except Exception:
+            pass
+    # Fallback to live pnet0 IP if address not in interfaces but mode is static
+    if not address and mode == "static":
+        try:
+            res = subprocess.run(["ip", "-o", "-4", "addr", "show", "pnet0"], capture_output=True, text=True, timeout=5)
+            for line in res.stdout.splitlines():
+                parts = line.split()
+                if len(parts) >= 4:
+                    iface = ipaddress.IPv4Interface(parts[3])
+                    address, netmask = str(iface.ip), str(iface.netmask)
+                    break
         except Exception:
             pass
     return {"mode": mode, "address": address, "netmask": netmask, "gateway": gateway}
@@ -2524,14 +2562,11 @@ def _netcfg_read_resolved():
 
 
 def _netcfg_build_pnet0(mode, address, netmask, gateway):
-    # allow-hotplug (not auto): pnet0 is brought up by the udev event from the
-    # pnet-bridges oneshot creating the bridge, so networking.service's `ifup -a`
-    # doesn't block on it — removes the ~90s boot wait. (Editor Apply reboots, so
-    # the new stanza takes effect cleanly on the way up.)
+    real_iface = _get_real_iface()
     out = ["allow-hotplug pnet0",
            "iface pnet0 inet %s" % mode,
-           "    pre-up ip link set dev eth0 up",
-           "    bridge_ports eth0",
+           "    pre-up ip link set dev %s up" % real_iface,
+           "    bridge_ports %s" % real_iface,
            "    bridge_stp off"]
     if mode == "static":
         out.append("    address %s" % address)
@@ -2559,14 +2594,16 @@ def _netcfg_replace_pnet0(content, new_stanza):
             out.append(lines[i])
             i += 1
     if not done:
-        raise Reject("pnet0 stanza not found in %s" % NETCFG_INTERFACES)
+        out.append("")
+        out.extend(new_stanza)
+        out.append("")
     return "\n".join(out)
 
 
 def _netcfg_backup(ts):
     d = NETCFG_BACKUP_DIR + "/" + ts
     os.makedirs(d, mode=0o700, exist_ok=True)
-    for src in (NETCFG_INTERFACES, NETCFG_RESOLVED):
+    for src in (NETCFG_INTERFACES, NETCFG_RESOLVED, "/etc/netplan/01-azamlabs-netcfg.yaml"):
         if os.path.isfile(src):
             shutil.copy2(src, d + "/" + os.path.basename(src))
     return d
@@ -2592,8 +2629,7 @@ def verb_server_netcfg(args):
             raise Reject("a gateway is required for a static management address")
         ipaddress.IPv4Address(gateway)        # raises on bad gw
         # Gateway sanity: it must live in the address's own subnet, otherwise the
-        # route is unusable and the box would be stranded. Catches the common
-        # transposed-digit typo synchronously, before anything is written.
+        # route is unusable and the box would be stranded.
         try:
             gw_net = ipaddress.IPv4Interface("%s/%s" % (address, netmask)).network
         except Exception:
@@ -2619,22 +2655,112 @@ def verb_server_netcfg(args):
     ts = time.strftime("%Y%m%d-%H%M%S")
     backup = _netcfg_backup(ts)
 
-    # rewrite /etc/network/interfaces (pnet0 stanza only)
+    # 1. Rewrite /etc/network/interfaces (pnet0 stanza)
     try:
         with open(NETCFG_INTERFACES) as f:
             old = f.read()
     except OSError as e:
-        raise Reject("cannot read %s: %s" % (NETCFG_INTERFACES, e))
+        old = ""
     new = _netcfg_replace_pnet0(old, _netcfg_build_pnet0(mode, address, netmask, gateway))
     iface_changed = (new != old)
-    if iface_changed:
+    if iface_changed or not os.path.exists(NETCFG_INTERFACES):
         tmp = NETCFG_INTERFACES + ".pnq.tmp"
         with open(tmp, "w") as f:
             f.write(new)
         os.chmod(tmp, 0o644)
         os.replace(tmp, NETCFG_INTERFACES)
 
-    # rewrite the resolved drop-in (DNS + search domain)
+    # 2. Synchronize /etc/netplan/01-azamlabs-netcfg.yaml for Native Ubuntu 24/26
+    try:
+        real_iface = _get_real_iface()
+        real_mac = ""
+        try:
+            with open("/sys/class/net/%s/address" % real_iface, "r") as f:
+                real_mac = f.read().strip()
+        except Exception:
+            pass
+        mac_yaml = "      macaddress: %s\n" % real_mac if real_mac else ""
+
+        os.makedirs("/etc/netplan", exist_ok=True)
+        # Purge conflicting legacy installer YAMLs
+        for old_np in os.listdir("/etc/netplan"):
+            if old_np.endswith((".yaml", ".yml")) and old_np != "01-azamlabs-netcfg.yaml":
+                try:
+                    os.remove(os.path.join("/etc/netplan", old_np))
+                except Exception:
+                    pass
+
+        if mode == "dhcp":
+            netplan_yaml = (
+                "network:\n"
+                "  version: 2\n"
+                "  renderer: networkd\n"
+                "  ethernets:\n"
+                "    %s:\n"
+                "      dhcp4: false\n"
+                "      dhcp6: false\n"
+                "  bridges:\n"
+                "    pnet0:\n"
+                "      interfaces: [%s]\n"
+                "%s"
+                "      dhcp4: true\n"
+                "      dhcp6: false\n"
+                "      dhcp4-overrides:\n"
+                "        dhcp-identifier: mac\n"
+                "      parameters:\n"
+                "        stp: false\n"
+                "        forward-delay: 0\n" % (real_iface, real_iface, mac_yaml)
+            )
+        else:
+            cidr = 24
+            try:
+                cidr = ipaddress.IPv4Network("0.0.0.0/%s" % netmask).prefixlen
+            except Exception:
+                pass
+            dns_block = ("      nameservers:\n        addresses: [%s]\n" % ", ".join(dns)) if dns else ""
+            if domain:
+                dns_block += "        search: [%s]\n" % domain
+            gw_line = ("      routes:\n        - to: default\n          via: %s\n" % gateway) if gateway else ""
+            netplan_yaml = (
+                "network:\n"
+                "  version: 2\n"
+                "  renderer: networkd\n"
+                "  ethernets:\n"
+                "    %s:\n"
+                "      dhcp4: false\n"
+                "      dhcp6: false\n"
+                "  bridges:\n"
+                "    pnet0:\n"
+                "      interfaces: [%s]\n"
+                "%s"
+                "      dhcp4: false\n"
+                "      dhcp6: false\n"
+                "      addresses: [%s/%s]\n"
+                "%s%s"
+                "      parameters:\n"
+                "        stp: false\n"
+                "        forward-delay: 0\n" % (real_iface, real_iface, mac_yaml, address, cidr, gw_line, dns_block)
+            )
+
+        np_tmp = "/etc/netplan/01-azamlabs-netcfg.yaml.pnq.tmp"
+        with open(np_tmp, "w") as nf:
+            nf.write(netplan_yaml)
+        os.chmod(np_tmp, 0o600)
+        os.replace(np_tmp, "/etc/netplan/01-azamlabs-netcfg.yaml")
+
+        # In static mode, purge stale DHCP leases so systemd-networkd doesn't keep old IP
+        if mode == "static":
+            for lease_dir in ("/run/systemd/netif/leases", "/var/lib/dhcp"):
+                if os.path.isdir(lease_dir):
+                    for lf in os.listdir(lease_dir):
+                        try:
+                            os.remove(os.path.join(lease_dir, lf))
+                        except Exception:
+                            pass
+    except Exception as ex:
+        log("netcfg netplan sync error: %s" % ex)
+
+    # 3. Rewrite the resolved drop-in (DNS + search domain)
     res = "[Resolve]\n"
     if dns:
         res += "DNS=%s\n" % " ".join(dns)
@@ -2650,18 +2776,6 @@ def verb_server_netcfg(args):
 
     rebooting = False
     if iface_changed and apply_net:
-        # Applying a management-INTERFACE change reliably requires a clean boot. Every
-        # live method tried on this ifupdown bridge stranded the appliance: `ifup` no-ops
-        # on stale /run/network/ifstate; `ifup --force` rebuilds pnet0 without re-enslaving
-        # eth0; `systemctl restart networking` leaves a changed default route stale; an
-        # addr/route flush + restart drops pnet0 entirely. Only a reboot re-applies
-        # /etc/network/interfaces cleanly (bridge rebuilt, eth0 bridged, correct default
-        # route). The new config is already on disk, so it takes effect on the way up.
-        # Reboot is scheduled a few seconds out, detached, so this call's HTTP response
-        # reaches the browser before the box goes down. (DNS/domain-only changes don't
-        # set iface_changed, so they apply live via the resolved restart above — no
-        # reboot.) The pre-apply gateway-in-subnet check above already rejects the obvious
-        # typo before we get here.
         run_quiet([
             "systemd-run", "--no-block", "--collect",
             "--unit=azamlabs-netcfg-reboot",

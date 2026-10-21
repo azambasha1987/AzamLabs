@@ -11,6 +11,29 @@ MAX_WAIT_SECONDS=15
 resolve_live_ip() {
     local ip=""
 
+    # Tier 0: Authoritative configured static IP check
+    if [ -f "/etc/network/interfaces" ]; then
+        local static_ip
+        static_ip=$(awk '/iface pnet0 inet static/{flag=1; next} flag && /address/{print $2; exit}' /etc/network/interfaces 2>/dev/null || true)
+        if [ -n "$static_ip" ]; then
+            if ip -4 addr show dev pnet0 2>/dev/null | grep -qw "$static_ip"; then
+                echo "$static_ip"
+                return 0
+            fi
+        fi
+    fi
+    if [ -f "/etc/netplan/01-azamlabs-netcfg.yaml" ]; then
+        local np_static_ip
+        np_static_ip=$(grep -E 'addresses:\s*\[[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' /etc/netplan/01-azamlabs-netcfg.yaml 2>/dev/null | head -n1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).*/\1/' || true)
+        [ -z "$np_static_ip" ] && np_static_ip=$(grep -E '^\s*-\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' /etc/netplan/01-azamlabs-netcfg.yaml 2>/dev/null | head -n1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).*/\1/' || true)
+        if [ -n "$np_static_ip" ]; then
+            if ip -4 addr show dev pnet0 2>/dev/null | grep -qw "$np_static_ip"; then
+                echo "$np_static_ip"
+                return 0
+            fi
+        fi
+    fi
+
     # Tier 1: pnet0 bridge IPv4
     ip=$(ip -4 addr show dev pnet0 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | grep -v '^127\.' | grep -v '^169\.254\.' | head -n1)
     if [ -n "$ip" ]; then

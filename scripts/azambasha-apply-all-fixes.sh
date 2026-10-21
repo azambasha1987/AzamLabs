@@ -266,9 +266,10 @@ case "$CHOICE" in
             echo ""
             echo "--> [12/12] Confirming Authoritative Credentials (azam) & Banner..."
             echo "root:azam" | chpasswd 2>/dev/null || true
-            if [ -f "${SCRIPT_DIR}/azambasha-update-banner.sh" ]; then
-                bash "${SCRIPT_DIR}/azambasha-update-banner.sh" || true
+            if [ -f "${SCRIPT_DIR}/azambasha-sync-network-config.sh" ]; then
+                bash "${SCRIPT_DIR}/azambasha-sync-network-config.sh" || true
             fi
+            ln -sf "${SCRIPT_DIR}/azambasha-sync-network-config.sh" /usr/local/bin/azam-netcfg 2>/dev/null || true
             ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azam-update 2>/dev/null || true
             ln -sf "${SCRIPT_DIR}/azambasha-quarterly-audit.sh" /usr/local/bin/azam-audit 2>/dev/null || true
             echo ""
@@ -367,9 +368,10 @@ case "$CHOICE" in
         if [ -f "${SCRIPT_DIR}/azambasha-fix-web-credentials.sh" ]; then
             bash "${SCRIPT_DIR}/azambasha-fix-web-credentials.sh" || true
         fi
-        if [ -f "${SCRIPT_DIR}/azambasha-sync-gui-version.sh" ]; then
-            bash "${SCRIPT_DIR}/azambasha-sync-gui-version.sh" auto || true
+        if [ -f "${SCRIPT_DIR}/azambasha-sync-network-config.sh" ]; then
+            bash "${SCRIPT_DIR}/azambasha-sync-network-config.sh" || true
         fi
+        ln -sf "${SCRIPT_DIR}/azambasha-sync-network-config.sh" /usr/local/bin/azam-netcfg 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azam-update 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-quarterly-audit.sh" /usr/local/bin/azam-audit 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-optimizer 2>/dev/null || true

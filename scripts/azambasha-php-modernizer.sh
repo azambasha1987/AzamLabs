@@ -37,45 +37,45 @@ injected = 0
 
 for root, dirs, files in os.walk(SCAN_ROOT):
     dirs[:] = [d for d in dirs if d not in ('.git', 'node_modules')]
-        for fname in files:
-            if not fname.endswith('.php'):
-                continue
-            fpath = os.path.join(root, fname)
-            try:
-                content = open(fpath, encoding='utf-8', errors='ignore').read()
-                changed = False
+    for fname in files:
+        if not fname.endswith('.php'):
+            continue
+        fpath = os.path.join(root, fname)
+        try:
+            content = open(fpath, encoding='utf-8', errors='ignore').read()
+            changed = False
 
-                # ── Pass 1: Deduplicate #[\AllowDynamicProperties] (backslash form) ──
-                if content.count(ATTR_BS) > 1:
-                    first = content.find(ATTR_BS)
-                    content = content[:first + len(ATTR_BS)] + \
-                              content[first + len(ATTR_BS):].replace(ATTR_BS, '')
+            # ── Pass 1: Deduplicate #[\AllowDynamicProperties] (backslash form) ──
+            if content.count(ATTR_BS) > 1:
+                first = content.find(ATTR_BS)
+                content = content[:first + len(ATTR_BS)] + \
+                          content[first + len(ATTR_BS):].replace(ATTR_BS, '')
+                changed = True
+                deduped += 1
+
+            # ── Pass 2: Deduplicate #[AllowDynamicProperties] (plain form) ────────
+            if content.count(ATTR_PLAIN) > 1:
+                first = content.find(ATTR_PLAIN)
+                content = content[:first + len(ATTR_PLAIN)] + \
+                          content[first + len(ATTR_PLAIN):].replace(ATTR_PLAIN, '')
+                changed = True
+
+            # ── Pass 3: Inject into files that have neither form yet ──────────────
+            has_attr = (ATTR_BS in content) or (ATTR_PLAIN in content)
+            if not has_attr:
+                def repl(m):
+                    global injected
+                    injected += 1
+                    return ATTR_PLAIN + '\n' + m.group(1)
+                new_content = class_regex.sub(repl, content, count=1)
+                if new_content != content:
+                    content = new_content
                     changed = True
-                    deduped += 1
 
-                # ── Pass 2: Deduplicate #[AllowDynamicProperties] (plain form) ────────
-                if content.count(ATTR_PLAIN) > 1:
-                    first = content.find(ATTR_PLAIN)
-                    content = content[:first + len(ATTR_PLAIN)] + \
-                              content[first + len(ATTR_PLAIN):].replace(ATTR_PLAIN, '')
-                    changed = True
-
-                # ── Pass 3: Inject into files that have neither form yet ──────────────
-                has_attr = (ATTR_BS in content) or (ATTR_PLAIN in content)
-                if not has_attr:
-                    def repl(m):
-                        global injected
-                        injected += 1
-                        return ATTR_PLAIN + '\n' + m.group(1)
-                    new_content = class_regex.sub(repl, content, count=1)
-                    if new_content != content:
-                        content = new_content
-                        changed = True
-
-                if changed:
-                    open(fpath, 'w', encoding='utf-8').write(content)
-            except Exception as e:
-                print(f"  SKIP {fpath}: {e}")
+            if changed:
+                open(fpath, 'w', encoding='utf-8').write(content)
+        except Exception as e:
+            print(f"  SKIP {fpath}: {e}")
 
 print(f"  Deduplicated: {deduped} file(s)")
 print(f"  Injected attr: {injected} file(s)")
@@ -96,11 +96,117 @@ if [ -f "$FUNCS_PHP" ]; then
     echo "      -> Modernized session cookie attributes in functions.php"
 fi
 
+# 3.5 Harden Lab Node Instantiation & Eliminate XPath Loop Overhead in __lab.php
+LAB_PHP="/opt/unetlab/html/includes/__lab.php"
+if [ -f "$LAB_PHP" ]; then
+    python3 - << 'PYLABEOF'
+import re, os
+
+fpath = "/opt/unetlab/html/includes/__lab.php"
+try:
+    with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+
+    # Search for legacy loop: $this->nodes[$n['id']]->edit($params);
+    old_pattern = r"(// Lab nodes \(networks must be alredy loaded\)[\s\S]*?foreach \(\$xml->xpath\('//lab/topology/nodes/node'\) as \$node_id => \$node\) \{[\s\S]*?\$this->nodes\[\$n\['id'\]\]->edit\(\$params\);[\s\S]*?\$this->nodes\[\$n\['id'\]\]->linkInterface\(\$i\);\s*\}\s*\})"
+
+    replacement = """// Lab nodes (networks must be already loaded)
+            // Pre-index lab configs and multi-configs once (O(1) lookup, stops in-loop XPath re-parsing & JIT register corruption)
+            $configsMap = [];
+            foreach ($xml->xpath('//lab/objects/configs/config') as $cfgNode) {
+                if (isset($cfgNode->attributes()->id)) {
+                    $configsMap[(int) $cfgNode->attributes()->id] = (string) $cfgNode;
+                }
+            }
+            $multiConfigsMap = [];
+            foreach ($xml->xpath('//lab/multi_configs/multi_config_lab') as $mcfgNode) {
+                if (isset($mcfgNode->attributes()->id)) {
+                    $multiConfigsMap[(int) $mcfgNode->attributes()->id] = (string) $mcfgNode;
+                }
+            }
+
+            $legacyPlacements = [];
+            foreach ($xml->xpath('//lab/topology/nodes/node') as $node_id => $node) {
+                $attrs = $node->attributes();
+                if (!isset($attrs->id)) continue;
+                $nodeId = (int) $attrs->id;
+                if ($nodeId <= 0) continue;
+
+                $n = ['id' => $nodeId];
+                if (isset($attrs->template)) $n['template'] = (string) $attrs->template;
+                if (isset($attrs->type)) $n['type'] = (string) $attrs->type;
+
+                try {
+                    $nodeObj = new Node($n, $nodeId, $this->tenant, $this, $this->node_sessions);
+                    $this->nodes[$nodeId] = $nodeObj;
+                } catch (Exception $e) {
+                    error_log(date('M d H:i:s ') . 'WARNING: ' . $f . ':node' . $nodeId . ' ' . $e->getMessage());
+                    continue;
+                }
+
+                $params = [];
+                $options = $nodeObj->getOptions();
+                foreach ($options as $key => $value) {
+                    if (isset($attrs->$key)) $params[$key] = (string) $attrs->$key;
+                }
+
+                // Collect legacy cluster_host XML attrs for migration (not via getOptions — removed).
+                $xmlHost = (int) ($attrs->cluster_host ?? 0);
+                if ($xmlHost > 0) {
+                    $legacyPlacements[$nodeId] = $xmlHost;
+                }
+
+                if (isset($configsMap[$nodeId]) && strlen($configsMap[$nodeId]) > 0) {
+                    $params['config_data'] = $configsMap[$nodeId];
+                }
+                if (isset($multiConfigsMap[$nodeId]) && strlen($multiConfigsMap[$nodeId]) > 0) {
+                    $params['multi_config'] = $multiConfigsMap[$nodeId];
+                }
+
+                $nodeObj->edit($params);
+
+                foreach ($node->interface as $interface) {
+                    // Loading configured interfaces for this node
+                    $i = array();
+                    $iattrs = $interface->attributes();
+
+                    $i['id'] = (string) $iattrs->id;
+                    $i['type'] = (string) $iattrs->type;
+                    $i['networks'] = $this->networks;
+
+                    foreach ($iattrs as $key => $value) {
+                        $i[$key] = (string) $value;
+                    }
+
+                    $nodeObj->linkInterface($i);
+                }
+            }"""
+
+    if "$configsMap" not in content and re.search(old_pattern, content):
+        new_content = re.sub(old_pattern, replacement, content, count=1)
+        if new_content != content:
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write(new_content)
+            print("      -> Successfully hardened Lab node instantiation in __lab.php")
+    else:
+        # Check and cleanup duplicate closing brace if left by any previous pass
+        if "}\n            }\n\n            }\n            // Migrate" in content:
+            content = content.replace("}\n            }\n\n            }\n            // Migrate", "}\n            }\n            // Migrate")
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write(content)
+            print("      -> Cleaned up duplicate closing brace in __lab.php")
+        else:
+            print("      -> __lab.php already contains optimized node instantiation")
+except Exception as e:
+    print(f"      -> Note on __lab.php patch: {e}")
+PYLABEOF
+fi
+
 # Ensure PHP-FPM FastCGI is registered with Apache
 a2enmod proxy_fcgi setenvif rewrite ssl headers 2>/dev/null || true
 a2enconf "php${PHP_VER}-fpm" 2>/dev/null || a2enconf php-fpm 2>/dev/null || true
 
-# 4. Tune PHP-FPM and PHP CLI Configurations
+# 4. Tune PHP-FPM and PHP CLI Configurations (Disable Buggy JIT in PHP 8.4/8.5)
 for conf in /etc/php/${PHP_VER}/fpm/php.ini /etc/php/${PHP_VER}/cli/php.ini /etc/php/*/*/php.ini; do
     if [ -f "$conf" ]; then
         sed -i 's/^memory_limit = .*/memory_limit = 2048M/' "$conf" 2>/dev/null || true
@@ -112,25 +218,36 @@ for conf in /etc/php/${PHP_VER}/fpm/php.ini /etc/php/${PHP_VER}/cli/php.ini /etc
         sed -i 's/^max_input_vars = .*/max_input_vars = 100000/' "$conf" 2>/dev/null || true
         sed -i 's/^error_reporting = .*/error_reporting = E_ALL \& ~E_DEPRECATED \& ~E_NOTICE \& ~E_USER_DEPRECATED/' "$conf" 2>/dev/null || true
         
-        # OPcache Settings & JIT Compiler
+        # OPcache Settings (Bytecode Caching Active, JIT disabled to prevent C-pointer clobbering)
         sed -i 's/^;*opcache.enable=.*/opcache.enable=1/' "$conf" 2>/dev/null || true
         sed -i 's/^;*opcache.enable_cli=.*/opcache.enable_cli=1/' "$conf" 2>/dev/null || true
         sed -i 's/^;*opcache.memory_consumption=.*/opcache.memory_consumption=512/' "$conf" 2>/dev/null || true
         sed -i 's/^;*opcache.interned_strings_buffer=.*/opcache.interned_strings_buffer=64/' "$conf" 2>/dev/null || true
         sed -i 's/^;*opcache.max_accelerated_files=.*/opcache.max_accelerated_files=50000/' "$conf" 2>/dev/null || true
         sed -i 's/^;*opcache.revalidate_freq=.*/opcache.revalidate_freq=2/' "$conf" 2>/dev/null || true
-        sed -i 's/^;*opcache.jit=.*/opcache.jit=tracing/' "$conf" 2>/dev/null || true
-        sed -i 's/^;*opcache.jit_buffer_size=.*/opcache.jit_buffer_size=64M/' "$conf" 2>/dev/null || true
-        grep -q "opcache.jit=tracing" "$conf" || echo "opcache.jit=tracing" >> "$conf" 2>/dev/null || true
-        grep -q "opcache.jit_buffer_size=64M" "$conf" || echo "opcache.jit_buffer_size=64M" >> "$conf" 2>/dev/null || true
+        sed -i 's/^;*opcache.jit=.*/opcache.jit=disable/' "$conf" 2>/dev/null || true
+        sed -i 's/^;*opcache.jit_buffer_size=.*/opcache.jit_buffer_size=0/' "$conf" 2>/dev/null || true
+        sed -i '/opcache.jit=tracing/d' "$conf" 2>/dev/null || true
+        grep -q "opcache.jit=disable" "$conf" || echo "opcache.jit=disable" >> "$conf" 2>/dev/null || true
+        grep -q "opcache.jit_buffer_size=0" "$conf" || echo "opcache.jit_buffer_size=0" >> "$conf" 2>/dev/null || true
     fi
 done
-echo "      -> Applied high-performance OPcache JIT Tracing (64MB), 2GB memory, and 100GB upload limits"
 
-# 5. Restart All Active PHP-FPM Services
+# Clean up standalone mod configs that forced JIT tracing
+for mod_ini in /etc/php/*/mods-available/99-azambasha-opcache.ini /etc/php/*/*/conf.d/99-azambasha-opcache.ini; do
+    if [ -f "$mod_ini" ]; then
+        sed -i 's/opcache.jit = tracing/opcache.jit = disable/g' "$mod_ini" 2>/dev/null || true
+        sed -i 's/opcache.jit_buffer_size = 64M/opcache.jit_buffer_size = 0/g' "$mod_ini" 2>/dev/null || true
+    fi
+done
+
+echo "      -> OPcache Bytecode Cache active (512MB), JIT safely disabled, 2GB memory & 100GB limits applied"
+
+# 5. Restart All Active PHP-FPM Services & Apache
 for svc in $(systemctl list-units --type=service --state=running 2>/dev/null | grep -o 'php[0-9.]*-fpm' | sort -u); do
     systemctl restart "$svc" 2>/dev/null || true
 done
+systemctl restart apache2 2>/dev/null || true
 
 echo "============================================================"
 echo "    [SUCCESS] PHP 8.3/8.4/8.5+ Engine & Runtime Modernized! "

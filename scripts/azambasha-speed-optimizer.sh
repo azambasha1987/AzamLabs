@@ -187,8 +187,8 @@ opcache.max_accelerated_files = 30000
 opcache.validate_timestamps = 1
 opcache.revalidate_freq = 2
 opcache.save_comments = 1
-opcache.jit = tracing
-opcache.jit_buffer_size = 64M
+opcache.jit = disable
+opcache.jit_buffer_size = 0
 realpath_cache_size = 4096K
 realpath_cache_ttl = 600
 EOF

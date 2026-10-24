@@ -178,8 +178,8 @@ class TestPerformanceBenchmarks(unittest.TestCase):
 
         self.assertIn("opcache.enable = 1", content)
         self.assertIn("opcache.memory_consumption = 256", content)
-        self.assertIn("opcache.jit = tracing", content)
-        self.assertIn("opcache.jit_buffer_size = 64M", content)
+        self.assertIn("opcache.jit = disable", content)
+        self.assertIn("opcache.jit_buffer_size = 0", content)
         self.assertIn("realpath_cache_size = 4096K", content)
 
     def test_sequenced_console_dispatcher_integrity(self):

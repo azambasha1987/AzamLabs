@@ -13,7 +13,11 @@ import re
 import sys
 import unittest
 import glob
-import yaml
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
 
 # Safe utf-8 reconfigure for Windows console
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -35,6 +39,8 @@ class TestNodeEmulationLifecycle(unittest.TestCase):
 
     def test_templates_syntax_and_structure(self):
         """Verify YAML syntax of all templates in html/templates/."""
+        if not HAS_YAML:
+            self.skipTest("PyYAML not installed in local environment")
         self.assertTrue(os.path.isdir(TEMPLATES_DIR), "html/templates directory must exist")
 
         template_files = glob.glob(os.path.join(TEMPLATES_DIR, "**", "*.yml"), recursive=True)

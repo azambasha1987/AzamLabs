@@ -225,6 +225,9 @@ case "$CHOICE" in
             fi
             echo ""
             echo "--> [4/11] Applying High-Performance Speed Optimizer & Ultra-KSM..."
+            if [ -f "${SCRIPT_DIR}/azambasha-php-modernizer.sh" ]; then
+                bash "${SCRIPT_DIR}/azambasha-php-modernizer.sh" || true
+            fi
             if [ -f "${SCRIPT_DIR}/azambasha-speed-optimizer.sh" ]; then
                 bash "${SCRIPT_DIR}/azambasha-speed-optimizer.sh" || true
             fi
@@ -294,6 +297,11 @@ case "$CHOICE" in
         echo ""
         echo "--> [6/15] Fixing File Permissions & Sockets..."
         bash "${SCRIPT_DIR}/azambasha-fix-permissions.sh"
+        echo ""
+        echo "--> [6b/15] Modernizing PHP Engine & Hardening Lab XML Node Loader..."
+        if [ -f "${SCRIPT_DIR}/azambasha-php-modernizer.sh" ]; then
+            bash "${SCRIPT_DIR}/azambasha-php-modernizer.sh" || true
+        fi
         echo ""
         echo "--> [7/15] Applying High-Performance Speed Optimizer (1024-Node Scaling)..."
         bash "${SCRIPT_DIR}/azambasha-speed-optimizer.sh"

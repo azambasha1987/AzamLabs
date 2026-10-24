@@ -428,6 +428,11 @@ EOF_BROKER
         systemctl restart azamlabs-brokerd.service 2>/dev/null || true
     fi
 
+    # 0. Modernize PHP 8.4/8.5 Runtime Engine & Enforce Safe Lab Loading
+    if [ -f "${SCRIPT_DIR}/azambasha-php-modernizer.sh" ]; then
+        bash "${SCRIPT_DIR}/azambasha-php-modernizer.sh" || true
+    fi
+
     # 1. Ensure systemd rate-limit immunity for PHP-FPM and Apache2
     for svc_name in php8.5-fpm php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm apache2; do
         mkdir -p "/etc/systemd/system/${svc_name}.service.d" 2>/dev/null || true

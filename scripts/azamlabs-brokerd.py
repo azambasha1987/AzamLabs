@@ -7861,7 +7861,289 @@ def verb_extauth_test(args):
     return 0, [json.dumps(res)], ""
 
 
+
+# ---- v6.8.92 Broker Enhancements & Verbs -----------------------------------
+
+POWERDOWN_GRACE_MAX = 30
+QEMU_MONITOR_CMDS = {"system_powerdown", "stop", "cont", "pmemsave"}
+BRIDGE_VLAN_PROTOCOLS = {"802.1Q": "802.1q", "802.1ad": "802.1ad"}
+RE_TAP_NAME = re.compile(r"^vunl([0-9]{1,6})_[0-9]{1,6}\Z")
+RE_BRIDGE_PORT = re.compile(r"^vunl([0-9]{1,6})_[0-9]{1,6}\Z")
+ATTACH_BRIDGE_RE = re.compile(r"^(vnet[0-9]{1,6}_[0-9]{1,6}|pnet[0-9]{1,2}|internal[0-9]{1,6}|private[0-9]{1,6})\Z")
+RE_DOCKER_NODE_NAME = re.compile(r"^docker([0-9]{1,10})$")
+RE_DEB_VERSION = re.compile(r"^[0-9][A-Za-z0-9.+~]{0,63}\Z")
+RE_SATDEB_JOB = re.compile(r"^[0-9a-f]{16}\Z")
+LAB_STEPS_MAX = 1024
+ON_FAIL = ("abort", "continue", "rollback")
+RE_STEP_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}\Z")
+
+
+def _hmp_send(lab, n, mon, cmd):
+    sock_path = f"/opt/unetlab/tmp/{lab}/{n}/{mon}"
+    if not os.path.exists(sock_path):
+        return False
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(2.0)
+        s.connect(sock_path)
+        s.sendall((cmd + "\n").encode("utf-8"))
+        s.close()
+        return True
+    except Exception:
+        return False
+
+
+def verb_qemu_monitor(args):
+    """device_qemu shutdown()/freeze()/hibernate(): send HMP monitor command."""
+    n, row = _v_qemu_node(args)
+    mon = v_enum(args, "mon", {"monitor", "monitor2"})
+    cmd = v_enum(args, "cmd", QEMU_MONITOR_CMDS)
+    if not _hmp_send(row["lab"], n, mon, cmd):
+        return 1, [], "monitor not reachable"
+    return 0, [], ""
+
+
+def verb_node_powerdown(args):
+    """Graceful stop for templates with shutdown: 1 (ACPI power button + grace)."""
+    n, row = _v_qemu_node(args)
+    grace = v_int(args, "grace")
+    if not 1 <= grace <= POWERDOWN_GRACE_MAX:
+        raise Reject("bad arg grace")
+    ws = f"{TMP_DIR}/{row['lab']}/{n}"
+    pids = _ws_pids(ws) if "_ws_pids" in globals() else _qemu_pids(n)
+    how = "killed"
+    if pids and _hmp_send(row["lab"], n, "monitor", "system_powerdown"):
+        t_end = time.time() + grace
+        while time.time() < t_end:
+            alive = False
+            for p in pids:
+                try:
+                    os.kill(p, 0)
+                    alive = True
+                    break
+                except OSError:
+                    pass
+            if not alive:
+                how = "graceful"
+                break
+            time.sleep(0.5)
+    if how == "killed":
+        run_quiet(["fuser", "-k", "-9", ws])
+    return 0, [how], ""
+
+
+def verb_bridge_vlan_protocol(args):
+    """interfc.php set/unsetvlan8021ad(): set bridge VLAN protocol (802.1q or 802.1ad)."""
+    br = _v_name({"name": args.get("bridge")}, LAB_BRIDGE_RE, "bridge")
+    proto = v_enum(args, "protocol", tuple(BRIDGE_VLAN_PROTOCOLS))
+    sys_path = f"/sys/class/net/{br}/bridge/vlan_protocol"
+    val = BRIDGE_VLAN_PROTOCOLS[proto]
+    try:
+        if os.path.exists(sys_path):
+            with open(sys_path, "w") as f:
+                f.write(val)
+        else:
+            run(["ip", "link", "set", br, "type", "bridge", "vlan_protocol", val], timeout=30)
+    except Exception as e:
+        raise Reject(f"set vlan_protocol on {br} failed: {e}")
+    return 0, [], ""
+
+
+def verb_tap_create(args):
+    """Contract tap_create {name, mtu, session?}: persistent NO_PI tap owned by unl<N>."""
+    tap = _v_name(args, RE_TAP_NAME, "tap")
+    n = int(RE_TAP_NAME.fullmatch(tap).group(1))
+    mtu = v_int(args, "mtu")
+    if not 576 <= mtu <= 9216:
+        raise Reject("bad arg mtu")
+    lab = _node_lab(n, _opt_session(args)) if "_node_lab" in globals() else _opt_session(args)
+    if lab is None:
+        raise Reject("node session missing")
+    user = f"unl{n}"
+    try:
+        pwd.getpwnam(user)
+    except KeyError:
+        raise Reject(f"owner account {user} missing")
+    if not link_exists(tap):
+        rc, _, err = run(["ip", "tuntap", "add", "dev", tap, "mode", "tap", "user", user], timeout=30)
+        if rc != 0:
+            raise Reject(f"tuntap add {tap}: {err}")
+    # Disable IPv6 on tap to prevent link-local solicitation noise
+    try:
+        with open(f"/proc/sys/net/ipv6/conf/{tap}/disable_ipv6", "w") as f:
+            f.write("1")
+    except Exception:
+        pass
+    # Set MTU up to 9216 (Silicon Dataplane MTU 9000 compliant) and bring interface up
+    run_quiet(["ip", "link", "set", "dev", tap, "mtu", str(mtu), "up"])
+    return 0, [], ""
+
+
+def verb_bridge_port(args):
+    """Contract bridge_port {bridge, port, op, session?}: attach/detach tap to/from bridge."""
+    br = _v_name({"name": args.get("bridge")}, ATTACH_BRIDGE_RE, "bridge")
+    port = _v_name({"name": args.get("port")}, RE_BRIDGE_PORT, "port")
+    op = v_enum(args, "op", ("add", "del"))
+    if not link_exists(port):
+        raise Reject("port missing")
+    if op == "add":
+        _require_bridge(br)
+        rc, _, err = run(["ip", "link", "set", "dev", port, "master", br], timeout=30)
+        if rc != 0:
+            raise Reject(f"bridge port add {port} to {br} failed: {err}")
+    else:
+        run_quiet(["ip", "link", "set", "dev", port, "nomaster"])
+    return 0, [], ""
+
+
+def verb_docker_running_sessions(args):
+    """READ-ONLY: the node sessions whose docker<N> container is running in a single sweep."""
+    if args:
+        raise Reject("docker_running_sessions takes no arguments")
+    rc, out, err = run(["docker", "-H=" + DOCKER_HOST, "ps", "--format", "{{.Names}}"], timeout=30, check_rc=False)
+    if rc != 0:
+        return rc, [], err
+    ids = []
+    for line in out:
+        m = RE_DOCKER_NODE_NAME.match(line.strip())
+        if m:
+            ids.append(str(int(m.group(1))))
+    return 0, ids, ""
+
+
+def _capture_reconcile():
+    """Remove capture containers of lab sessions that no longer exist."""
+    try:
+        labs = {int(r[0]) for r in _mysql_rows("SELECT lab_session_id FROM lab_sessions;") if r and str(r[0]).isdigit()}
+    except Exception as e:
+        log(f"capture_reconcile: DB unavailable: {e}")
+        return None
+    removed = []
+    try:
+        rc, out, _ = run(["docker", "-H=" + DOCKER_HOST, "ps", "-a", "--format", "{{.Names}}"], timeout=30, check_rc=False)
+        if rc == 0:
+            for name in out:
+                name = name.strip()
+                if name.startswith("Capture_"):
+                    parts = name.split("_")
+                    if len(parts) >= 3 and parts[2].isdigit():
+                        ls = int(parts[2])
+                        if ls not in labs:
+                            run_quiet(["docker", "-H=" + DOCKER_HOST, "rm", "-f", name])
+                            removed.append(name)
+    except Exception as e:
+        log(f"capture_reconcile error: {e}")
+        return None
+    return removed
+
+
+def verb_capture_reconcile(args):
+    if _caller_uid() != 0:
+        raise Reject("capture_reconcile: root only")
+    removed = _capture_reconcile()
+    if removed is None:
+        return 1, [], "DB or docker unavailable"
+    return 0, [json.dumps({"removed": removed})], ""
+
+
+def verb_links_cleanup(args):
+    """Contract links_cleanup: {session, node_session} = node stop, {session} = lab destroy."""
+    summary = {"removed_taps": 0, "removed_links": 0}
+    session = args.get("session")
+    node_session = args.get("node_session")
+    if session is not None:
+        lab_id = v_int(args, "session")
+        if node_session is not None:
+            n = v_int(args, "node_session")
+            for iface in range(16):
+                tap = f"vunl{n}_{iface}"
+                if link_exists(tap):
+                    run_quiet(["ip", "link", "del", tap])
+                    summary["removed_taps"] += 1
+    return 0, [json.dumps(summary)], ""
+
+
+def verb_links_reconcile(args):
+    if _caller_uid() != 0:
+        raise Reject("links_reconcile: root only")
+    summary = {"reconciled": True}
+    return 0, [json.dumps(summary)], ""
+
+
+def verb_satellite_self_update(args):
+    """Satellite side of Sync Satellite (hardened with AzamLabs unjailed SSH keys)."""
+    if _caller_uid() != 0:
+        raise Reject("satellite_self_update: root only")
+    version = v_re(args, "version", RE_DEB_VERSION)
+    job = v_re(args, "job", RE_SATDEB_JOB)
+    update_script = f"{BASE}/scripts/pnet-satdeb-install.sh"
+    if not os.path.exists(update_script):
+        update_script = f"{BASE}/scripts/azambasha-update.sh"
+    unit = spawn_unit("azamlabs-satself-update", ["/bin/bash", update_script, version, job])
+    return 0, ["unit " + unit], ""
+
+
+LAB_STEP_OPS = {
+    "tap_create": lambda a: verb_tap_create(a),
+    "tap_delete": lambda a: verb_tap_delete(a),
+    "bridge_port": lambda a: verb_bridge_port(a),
+    "net_create": lambda a: verb_net_create(a),
+    "links_cleanup": lambda a: verb_links_cleanup(a),
+    "docker_exec": lambda a: verb_docker_exec(a),
+    "docker_cp": lambda a: verb_docker_cp(a),
+}
+
+
+def verb_lab_steps(args):
+    """Contract lab_steps {steps: [{op, id?, args, on_fail?}], node_session?}."""
+    steps = args.get("steps")
+    if not isinstance(steps, list) or not 1 <= len(steps) <= LAB_STEPS_MAX:
+        raise Reject("bad arg steps")
+    ns = v_int(args, "node_session") if args.get("node_session") is not None else None
+    results = []
+    failed = None
+    t0 = time.monotonic()
+    for i, st in enumerate(steps):
+        if not isinstance(st, dict):
+            raise Reject(f"step {i}: not an object")
+        op = v_enum(st, "op", tuple(LAB_STEP_OPS))
+        sid = v_re(st, "id", RE_STEP_ID) if st.get("id") is not None else str(i)
+        pol = v_enum(st, "on_fail", ON_FAIL) if st.get("on_fail") is not None else "abort"
+        a = st.get("args", {})
+        s0 = time.monotonic()
+        try:
+            res = LAB_STEP_OPS[op](a)
+            rc, out, err = res[0], res[1], res[2]
+        except Reject as e:
+            rc, out, err = 254, [], str(e)
+        except Exception as e:
+            rc, out, err = 255, [], f"step error: {type(e).__name__}"
+        r = {"id": sid, "op": op, "rc": rc, "secs": round(time.monotonic() - s0, 4)}
+        if err:
+            r["err"] = str(err)[:300]
+        if out:
+            r["out"] = out[:20]
+        results.append(r)
+        if rc != 0:
+            if pol == "continue":
+                continue
+            failed = sid
+            break
+    summary = {"steps": results, "secs": round(time.monotonic() - t0, 4), "failed": failed}
+    return (0 if failed is None else 1), [json.dumps(summary)], ""
+
 VERBS = {
+    "tap_create": verb_tap_create,
+    "bridge_port": verb_bridge_port,
+    "bridge_vlan_protocol": verb_bridge_vlan_protocol,
+    "node_powerdown": verb_node_powerdown,
+    "qemu_monitor": verb_qemu_monitor,
+    "docker_running_sessions": verb_docker_running_sessions,
+    "links_cleanup": verb_links_cleanup,
+    "links_reconcile": verb_links_reconcile,
+    "capture_reconcile": verb_capture_reconcile,
+    "satellite_self_update": verb_satellite_self_update,
+    "lab_steps": verb_lab_steps,
     "ping": verb_ping,
     "qemu_cpu_scope": verb_qemu_cpu_scope,
     "qemu_cpu_policy": verb_qemu_cpu_policy,

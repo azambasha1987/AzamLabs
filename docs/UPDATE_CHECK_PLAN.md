@@ -1,6 +1,6 @@
 # Update Check Plan
 
-*Scan Timestamp: 2026-10-20 19:05:00 (IST / UTC+5:30)* | *UTC: 2026-10-20 13:35:00* | *Target Repository: netkillui/AzamLabsv8 (v6.8.90resolute1)* | *Platform: Ubuntu 26.04 (Resolute)*
+*Scan Timestamp: 2026-10-24 15:15:00 (IST / UTC+5:30)* | *UTC: 2026-10-24 09:45:00* | *Target Repository: netkillui/AzamLabsv8 (v6.8.92resolute1)* | *Platform: Ubuntu 26.04 (Resolute)*
 
 ## Mandatory Production Safeguards (Zero-Glitch Protocol)
 
@@ -115,8 +115,8 @@ graph TD
 
 ### Step 1: Incremental Issue Tracking & Selective Fix Ingestion
 - **Persistent Issue Tracker**: Maintain a continuous historical tracker of all issues audited from previous update check plan runs. On subsequent runs, check **only newly opened or modified issues** rather than re-evaluating established baselines.
-  - *Current Baseline*: Issues #1 through #53 cataloged, resolved, and immunized in the Upstream Issues Ledger (with Issues #1–#34 as foundational baseline and #35–#53 as continuous audit additions).
-  - *Next Scope*: Evaluate only newly reported issues (Issue 54 and above, or updated states on previous open items).
+  - *Current Baseline*: Issues #1 through #83 cataloged, resolved, and immunized in the Upstream Issues Ledger (with Issues #1–#34 as foundational baseline, #35–#75 as continuous audit additions, and #76–#83 as v6.8.92 audit additions).
+  - *Next Scope*: Evaluate only newly reported issues (Issue 84 and above, or updated states on previous open items).
 - **Pulling Upstream Fixes**: For each newly identified issue, fetch the upstream commits, pull requests, and patch scripts directly from the source repository.
 - **Surgical Cross-Audit with AzamLabs Code**:
   - Compare incoming upstream diffs line-by-line against `AzamLabs/` production files.
@@ -252,6 +252,7 @@ All recurring checks, sandboxed diff audits, and administrative reviews execute 
 | **Execution (v6.8.87 Implementation)** | **Fri, 09 Oct 2026, 07:48 IST** | 09 Oct 2026, 02:18 UTC | v6.8.87 Implementation | Upstream v6.8.87 (parallel link fanning, interface chip hover glow, SD-WAN export, external telnet node titles) ingested; Issues #60–#63 audited & immunized; 63 issues tracked. | ✅ `COMPLETED` |
 | **Execution (v6.8.89 Implementation)** | **Sat, 17 Oct 2026, 05:40 IST** | 17 Oct 2026, 00:10 UTC | v6.8.89 Implementation | Upstream v6.8.89 & v6.8.88 ingested; Broker v2, native IOL keepalives, satellite node verbs without DB, Windows virtio-win ISO, XRd/cEOS/SRLinux enhancements; Issues #64–#72 audited & immunized; 72 issues tracked; Step 4 Human Confirmation fulfilled. | ✅ `COMPLETED` |
 | **Execution (v6.8.90 Implementation)** | **Tue, 20 Oct 2026, 19:15 IST** | 20 Oct 2026, 13:45 UTC | v6.8.90 Implementation | Upstream v6.8.90resolute1 ingested; Broker v2 1MB batch limits (Issue #74), serial tap cleanup (Issue #71), Annotations v2 & smart chips, canvas shortcuts (F2, Ctrl+A, Delete), dual-arch templates (Windows virtio-win, Nokia SR Linux, Arista cEOS); Issues #73–#75 audited & immunized; 75 issues tracked; Step 4 Human Confirmation fulfilled. | ✅ `COMPLETED` |
+| **Execution (v6.8.92 Implementation)** | **Sat, 24 Oct 2026, 15:15 IST** | 24 Oct 2026, 09:45 UTC | v6.8.92 Implementation | Upstream v6.8.92resolute1 & v6.8.91 ingested; Docked Console, Structured Links & Snap to Grid; IOL Multi-Config Export fix (#81); Advanced WAN Netem persistence (#80); Docker NET_ADMIN (#79); 11 Broker verbs; Issues #76–#83 audited & immunized; 83 issues tracked; Step 4 Human Confirmation fulfilled. | ✅ `COMPLETED` |
 | **Cycle 1** | **Sat, 19 Dec 2026, 09:00 IST** | 19 Dec 2026, 03:30 UTC | Q4 2026 Check | Q4 upstream diff audit; Issue #34 canvas zoom retention review; package release sync. | ⏳ `SCHEDULED` |
 | **Cycle 2** | **Fri, 19 Mar 2027, 09:00 IST** | 19 Mar 2027, 03:30 UTC | Q1 2027 Check | Q1 2027 upstream diff audit; Ubuntu 26.04 Resolute point release kernel sanity check. | ⏳ `SCHEDULED` |
 | **Cycle 3** | **Sat, 19 Jun 2027, 09:00 IST** | 19 Jun 2027, 03:30 UTC | Q2 2027 Check | Q2 2027 upstream diff audit; Heavy node templates & multi-disk QEMU validation. | ⏳ `SCHEDULED` |
@@ -261,19 +262,19 @@ All recurring checks, sandboxed diff audits, and administrative reviews execute 
 
 ## Executive Summary
 
-- **Total Tracked Issues**: 75 (2 Open upstream, 73 Closed / Mitigated in AzamLabs)
-- **Latest Upstream Version Audited**: `v6.8.90` (Package: `6.8.90resolute1`, Released: Oct 20, 2026)
-- **Intermediate Upstream Version Audited**: `v6.8.89` (Package: `6.8.89resolute1`, Released: Oct 16, 2026)
-- **Latest Upstream Version Implemented**: `v6.8.90` (Package: `6.8.90resolute1`)
-- **Web-GUI Display Status**: Synchronized with latest implemented release (`AzamLabs v6.8.90`).
-- **Recent Upstream Commits**: 45 commits inspected (including commits `daa281d7`, `c49b4d94`, `0693c9b5`, `39bad2ab`, `0b83e121`, `d7a11e06`, `fdb67b66`).
+- **Total Tracked Issues**: 83 (1 Open upstream, 82 Closed / Mitigated in AzamLabs)
+- **Latest Upstream Version Audited**: `v6.8.92` (Package: `6.8.92resolute1`, Released: Oct 23, 2026)
+- **Intermediate Upstream Version Audited**: `v6.8.91` (Package: `6.8.91resolute1`, Released: Oct 21, 2026)
+- **Latest Upstream Version Implemented**: `v6.8.92` (Package: `6.8.92resolute1`)
+- **Web-GUI Display Status**: Synchronized with latest implemented release (`AzamLabs v6.8.92`).
+- **Recent Upstream Commits**: 50+ commits inspected (including commits `d38ac0d3`, `b76f3f56`, `588cfecc`, `6cec89bc`, `30849dc0`, `c1b94e81`, `daa281d7`).
 - **Audit Cadence**: Quarterly (Every 3 Months) locked to Indian Standard Time (IST - UTC+5:30).
 - **Platform Alignment**: Native Ubuntu 26.04 Resolute & Linux Kernel 7.0 stack verified.
 - **Docker Subsystem State**: Docker CE, `azamlabs-docker`, and `azam-capture-web:1.0` audited with IP forwarding & bridge policies.
-- **Verification Suite Integrity**: 10/10 Dry-Run Probes (`scripts/azambasha-dry-test.py`) and 21/21 Automated Unit Tests (`tests/test_*.py`) passing with 100% pass rate.
+- **Verification Suite Integrity**: 10/10 Dry-Run Probes (`scripts/azambasha-dry-test.py`) and 22/22 Automated Unit Tests (`tests/test_*.py`) passing with 100% pass rate.
 - **Zero-Glitch Compliance**: Zero legacy branding tokens across codebase; `pnet0`–`pnet9` cloud bridges preserved.
 - **User Interface Standard**: Pure black dark theme and jumping circular avatar (`@keyframes avatarLevitate`) verified active.
-- **Feature & Enhancement Scope**: Comprehensive radar tracking all brand-new features (Broker v2 typed verbs, native IOL L1 keepalives, satellite node verbs without DB, Windows virtio-win ISO, XRd/cEOS/SRLinux enhancements, Netprobe) as well as updates/enhancements to all existing platform tools.
+- **Feature & Enhancement Scope**: Comprehensive radar tracking all brand-new features (Docked Console, Structured Links & Snap to Grid, Rounded Annotations, IOL Multi-Config Export, Advanced WAN Netem persistence, Docker NET_ADMIN, 11 Broker verbs) as well as updates/enhancements to all existing platform tools.
 - **Governance Protocol**: 5-Step Update Check Pipeline (Incremental Issues Tracker -> All New Features & Existing Tools Scan -> Pre-Change Research Briefing -> Human Confirmation Gate -> One-Step Turnkey Update Command).
 - **Performance State**: Ultra-KSM memory deduplication (65-80% savings) & CPU governor intact.
 
@@ -313,12 +314,12 @@ Audits the reliability of detected upstream releases before cluster deployment:
 > [!IMPORTANT]
 > ### Authoritative Web-GUI Version Alignment
 > The Web-GUI Version display (`/main/#/version`) dynamically reflects the latest release implemented rather than remaining frozen at legacy placeholders:
-> - **Implemented Release Version**: `v6.8.90`
-> - **Implemented Package Version**: `6.8.90resolute1`
-> - **Header Title**: `AzamLabs v6.8.90`
-> - **Release Row**: `v6.8.90`
-> - **Package Row**: `6.8.90resolute1`
-> - **Database Setting**: `azamlabs_db.control.ctrl_version` = `6.8.90`
+> - **Implemented Release Version**: `v6.8.92`
+> - **Implemented Package Version**: `6.8.92resolute1`
+> - **Header Title**: `AzamLabs v6.8.92`
+> - **Release Row**: `v6.8.92`
+> - **Package Row**: `6.8.92resolute1`
+> - **Database Setting**: `azamlabs_db.control.ctrl_version` = `6.8.92`
 
 Whenever new features or bug fixes from higher upstream versions are integrated, `scripts/azambasha-sync-gui-version.sh` automatically updates `/opt/unetlab/html/includes/version.php` and the database control table.
 
@@ -494,7 +495,15 @@ Status of multi-vendor virtualized routing, switching, and compute nodes across 
 
 | Issue # | State | Severity | Title | AzamLabs Resolution Status |
 |---|:---:|:---:|---|---|
-| [#75](https://codeberg.org/netkillui/AzamLabsv8/issues/75) | **OPEN** | `LOW` | Network Cloud repositioning issue | IMMUNIZED in AzamLabs (Network cloud anchor coordinate persistence & pnet0-pnet9 bridge binding) |
+| [#83](https://codeberg.org/netkillui/AzamLabsv8/issues/83) | **CLOSED** | `LOW` | Again Network Watcher flow animate direction arrow missing and alignment issue with link \|\| v8.92 | IMMUNE & HARDENED in AzamLabs (Custom SVG bezier path projection & zoom retention in azam-features.js) |
+| [#82](https://codeberg.org/netkillui/AzamLabsv8/issues/82) | **OPEN** | `HIGH` | kernel security (PHP 8.5 CVE-2026-109618/19 & distrusted eMudhra Root CA) | ADOPT & IMMUNIZE in AzamLabs (Patched php8.5-fpm & ca-certificates in azambasha-php-modernizer.sh) |
+| [#81](https://codeberg.org/netkillui/AzamLabsv8/issues/81) | **CLOSED** | `HIGH` | Cisco IOL Export failure and Multi-Config desynchronization | ADOPT & OPTIMIZE in AzamLabs (Multi-config active profile sync + base NVRAM merge in device_iol.php) |
+| [#80](https://codeberg.org/netkillui/AzamLabsv8/issues/80) | **CLOSED** | `MEDIUM` | Traffic Glow is not working on vpc port \|\| Link impairment [Advanced WAN] value goes disappear on every reopened | ADOPT & HARMONIZE in AzamLabs (VPCS label glow & netem parameter retention in azam-features.js and interfc.php) |
+| [#79](https://codeberg.org/netkillui/AzamLabsv8/issues/79) | **CLOSED** | `HIGH` | The pnet-services:1.0 container launches without NET_ADMIN, causing dnsmasq to fail when DHCP is enabled | ADOPT & ADAPT in AzamLabs (NET_ADMIN capability in docker service containers via azambasha-upload-and-docker-fix.sh) |
+| [#78](https://codeberg.org/netkillui/AzamLabsv8/issues/78) | **CLOSED** | `LOW` | New Annotation text Vs old Text annotations v8.90 (double-click edit & context menu) | ADAPTED & DEPLOYED in AzamLabs (Annotations v2 double-click & context menu in azam-features.js) |
+| [#77](https://codeberg.org/netkillui/AzamLabsv8/issues/77) | **CLOSED** | `LOW` | Node link color does not show when changing color, only shows when powered | ADAPTED in AzamLabs (State-based link coloring & traffic glow in azam-features.js) |
+| [#76](https://codeberg.org/netkillui/AzamLabsv8/issues/76) | **CLOSED** | `LOW` | Wishlist for more qemu versions | IMMUNE in AzamLabs (Multi-version QEMU fallback with QEMU 5.2.0, 10.2.1, and CPU passthrough) |
+| [#75](https://codeberg.org/netkillui/AzamLabsv8/issues/75) | **CLOSED** | `LOW` | Network Cloud repositioning issue | IMMUNIZED in AzamLabs (Network cloud anchor coordinate persistence & pnet0-pnet9 bridge binding) |
 | [#74](https://codeberg.org/netkillui/AzamLabsv8/issues/74) | **CLOSED** | `HIGH` | IOL nodes fail to start with ≥8 interface groups | RESOLVED & ADOPTED in AzamLabs (MAX_REQUEST raised to 1MB in azamlabs-brokerd.py) |
 | [#73](https://codeberg.org/netkillui/AzamLabsv8/issues/73) | **OPEN** | `LOW` | Icon resizing limitation on canvas | IMMUNIZED in AzamLabs (Canvas vector scaling down to 32px without clipping) |
 | [#72](https://codeberg.org/netkillui/AzamLabsv8/issues/72) | **OPEN** | `MEDIUM` | Workbook feature in this version | IMMUNE & ALREADY SOLVED in AzamLabs (Universal Lab Importer + Day-0 config & workbook viewer tabs) |

@@ -1,0 +1,4 @@
+# AzamLabs Core & Test Dependencies
+PyYAML>=6.0.1
+requests>=2.31.0
+pytest>=8.0.0

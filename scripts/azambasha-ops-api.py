@@ -37,10 +37,6 @@ COMMANDS = {
     "watchdog-status":["python3", "/usr/local/bin/azam-watchdog", "--status"],
     "watchdog-install":["python3", "/usr/local/bin/azam-watchdog", "--install"],
 
-    # Backup & Restore
-    "backup":        ["bash", "/usr/local/bin/azam-backup", "--backup"],
-    "backup-list":   ["bash", "/usr/local/bin/azam-backup", "--list"],
-
     # Network & Dataplane
     "bench":         None,   # requires SATELLITE_IP param
     "console-fix":   ["bash", "/usr/local/bin/azam-console-fix", "--fix"],
@@ -49,9 +45,6 @@ COMMANDS = {
     # Security & SSL
     "ssl-status":    ["bash", "/usr/local/bin/azam-ssl", "--status"],
     "ssl-generate":  ["bash", "/usr/local/bin/azam-ssl", "--generate"],
-
-    # Templates
-    "templates-list":["bash", "/usr/local/bin/azam-templates", "list"],
 
     # Topology Git
     "topology-snapshot": ["python3", "/usr/local/bin/azam-topology-git", "--snapshot"],
@@ -79,11 +72,6 @@ COMMANDS = {
     "scheduler-stop-idle":["python3", "/opt/azambasha/scripts/azambasha-scheduler.py", "--stop-idle"],
     "scheduler-install":  ["python3", "/opt/azambasha/scripts/azambasha-scheduler.py", "--install"],
 
-    # Cloud & Offsite Backup
-    "cloud-status":       ["python3", "/opt/azambasha/scripts/azambasha-cloud-backup.py", "--status"],
-    "cloud-sync":         ["python3", "/opt/azambasha/scripts/azambasha-cloud-backup.py", "--sync"],
-    "cloud-list":         ["python3", "/opt/azambasha/scripts/azambasha-cloud-backup.py", "--list-remote"],
-
 
 
     # Cloud & Real-LAN Transit
@@ -99,13 +87,6 @@ COMMANDS = {
     # Anti-Bootstorm Engine
     "bootstorm-start":    None,
 
-    # Templates Marketplace & Universal Importer / Auto-Fixer
-    "templates-deploy":     None,
-    "templates-browse":     None,
-    "templates-pull":       None,
-    "templates-fix":        None,
-    "templates-import-cml": None,
-
     # Topology Git
     "topology-log":       None,
     "topology-diff":      None,
@@ -118,40 +99,7 @@ COMMANDS = {
     # HTML5 Console Fixer
     "console-fix-full":   ["bash", "/usr/local/bin/azam-console-fix", "--fix"],
 
-    # Lab Backups & Snapshots
-    "backup-create":      None,
-    "backup-restore":     None,
 }
-
-DEFAULT_TEMPLATES = [
-    # CML2 (Cisco Modeling Labs 2.x) Topologies
-    {"name":"cml2-bgp-enterprise","format":"cml2","category":"bgp","desc":"Cisco DevNet CML2 Enterprise BGP Core: Dual-homed eBGP to dual ISPs with iBGP mesh & Day-0 configs.","nodes":4,"tags":["cml2","cml","bgp","ospf","cisco","enterprise"],"source_url":"https://github.com/CiscoDevNet/cml-community/tree/master/lab-topologies/bgp-enterprise"},
-    {"name":"cml2-basic-forwarding","format":"cml2","category":"ccna","desc":"CML2 Flexible Forwarding Behavior: Multi-router OSPF area 0 backbone with dual traffic-gen hosts.","nodes":6,"tags":["cml2","cml","ospf","forwarding","traffic"],"source_url":"https://github.com/CiscoDevNet/cml-community/blob/master/lab-topologies/basic-forwarding-behavior.yaml"},
-    {"name":"ccna-routing","format":"cml2","category":"ccna","desc":"Full CCNA Routing topology: 4x IOSv routers + 2x IOL L2 switches. OSPF, EIGRP, RIP labs ready.","nodes":6,"tags":["cml2","ccna","ospf","eigrp","rip","routing"],"source_url":"https://github.com/CiscoDevNet/cml-community/tree/master/labs/ccna-enterprise-routing"},
-    {"name":"sdwan-vedge","format":"cml2","category":"sdwan","desc":"SD-WAN vEdge: vManage + vSmart + vBond + 3x vEdge with OMP, TLOCs, and policy templates.","nodes":6,"tags":["cml2","sdwan","viptela","cisco","vedge"],"source_url":"https://github.com/CiscoDevNet/cml-community/tree/master/use-cases/sdwan"},
-
-    # EVE-NG Community Topologies
-    {"name":"eve-ccie-enterprise","format":"eve-ng","category":"ccie","desc":"EVE-NG Community CCIE Enterprise Infrastructure: Full 10-node core/distribution/access topology.","nodes":10,"tags":["eve-ng","eve","ccie","enterprise","switching","bgp"],"source_url":"https://github.com/Shadow578/eve-ng-labs/tree/master/ccie"},
-    {"name":"eve-arista-evpn","format":"eve-ng","category":"datacenter","desc":"EVE-NG Arista vEOS BGP EVPN/VXLAN: 2x Spine + 4x Leaf datacenter fabric with auto-vtep.","nodes":6,"tags":["eve-ng","eve","arista","evpn","vxlan","datacenter"],"source_url":"https://github.com/Shadow578/eve-ng-labs/tree/master/arista"},
-    {"name":"bgp-full-mesh","format":"eve-ng","category":"bgp","desc":"BGP full-mesh: 8x CSR1000v routers, 4 autonomous systems, iBGP/eBGP, communities, route-maps.","nodes":8,"tags":["eve-ng","bgp","ccie","enterprise","advanced"],"source_url":"https://github.com/Shadow578/eve-ng-labs/tree/master/bgp-mesh"},
-    {"name":"mpls-ldp","format":"eve-ng","category":"mpls","desc":"MPLS/LDP: 6x CSR1000v with MPLS forwarding, LDP neighbors, L3VPN PE-CE, and traffic engineering.","nodes":6,"tags":["eve-ng","mpls","ldp","l3vpn","te"],"source_url":"https://github.com/Shadow578/eve-ng-labs/tree/master/mpls-ldp"},
-    {"name":"isis-datacenter","format":"eve-ng","category":"isis","desc":"IS-IS spine-leaf datacenter: 2x spine + 4x leaf with IS-IS L2, BFD, and prefix-SID.","nodes":6,"tags":["eve-ng","isis","datacenter","spine-leaf","bfd"],"source_url":"https://github.com/Shadow578/eve-ng-labs/tree/master/isis"},
-
-    # GNS3 Community Topologies
-    {"name":"gns3-frr-bgp-mesh","format":"gns3","category":"bgp","desc":"GNS3 Open-Source FRRouting BGP Mesh: Containerized Linux routers running high-speed modern FRR.","nodes":5,"tags":["gns3","frr","bgp","linux","open-source"],"source_url":"https://github.com/danehans/gns3-labs/tree/master/bgp-mesh"},
-    {"name":"gns3-spine-leaf","format":"gns3","category":"datacenter","desc":"GNS3 Datacenter Spine-Leaf: Multi-vendor fabric with automated eBGP unnumbered underlay.","nodes":6,"tags":["gns3","spine-leaf","datacenter","ebgp","automation"],"source_url":"https://github.com/danehans/gns3-labs/tree/master/spine-leaf"},
-
-    # Native AzamLabs v8 / Hybrid Topologies
-    {"name":"ccna-switching","format":"azamlabs-v8","category":"ccna","desc":"CCNA Switching: 6x IOL L2 with STP, VTP, Inter-VLAN, EtherChannel, and HSRP pre-configured.","nodes":8,"tags":["azamlabs","azamlabs-v8","ccna","switching","stp","vlan","hsrp"],"source_url":"https://github.com/JeremyITLab/CCNA-Labs"},
-    {"name":"ccna-wan","format":"azamlabs-v8","category":"ccna","desc":"CCNA WAN: PPP, HDLC, Frame Relay, DMVPN phase 1 topology with 4 routers.","nodes":4,"tags":["azamlabs","azamlabs-v8","ccna","wan","ppp","dmvpn"],"source_url":"https://github.com/JeremyITLab/CCNA-Labs"},
-    {"name":"bgp-internet-edge","format":"azamlabs-v8","category":"bgp","desc":"Internet edge: 2x ISP routers + 2x CPE with BGP dual-homing, prefix filtering, AS-path prepend.","nodes":4,"tags":["azamlabs","azamlabs-v8","bgp","internet","edge","filtering"],"source_url":"https://github.com/packetpushers/labs"},
-    {"name":"ospf-multi-area","format":"azamlabs-v8","category":"ospf","desc":"OSPF multi-area: Areas 0, 1, 2, stub/NSSA, virtual links, redistribution with 6 IOSv routers.","nodes":6,"tags":["azamlabs","azamlabs-v8","ospf","multiarea","redistribution"],"source_url":"https://github.com/CiscoDevNet/cml-community"},
-    {"name":"mpls-sr","format":"azamlabs-v8","category":"mpls","desc":"Segment Routing: XRv9k or IOSv SR-MPLS with TI-LFA fast reroute, SID allocation, and SR-TE.","nodes":4,"tags":["azamlabs","azamlabs-v8","mpls","segment-routing","sr-te","xrv"],"source_url":"https://github.com/packetpushers/labs"},
-    {"name":"firewall-perimeter","format":"azamlabs-v8","category":"security","desc":"Perimeter security: ASAv + Cisco ISE + 2x edge routers with ZBF, NAT, VPN, and ACLs.","nodes":5,"tags":["azamlabs","azamlabs-v8","security","asa","firewall","nat","vpn"],"source_url":"https://github.com/Shadow578/eve-ng-labs"},
-    {"name":"datacenter-vxlan","format":"azamlabs-v8","category":"datacenter","desc":"VXLAN/EVPN BGP: 2x spine + 4x leaf Nexus 9Kv with L2VNI, L3VNI, and VTEP auto-discovery.","nodes":6,"tags":["azamlabs","azamlabs-v8","vxlan","evpn","bgp","nexus","datacenter"],"source_url":"https://github.com/packetpushers/labs"},
-    {"name":"ccie-rs-lab1","format":"azamlabs-v8","category":"ccie","desc":"CCIE RS mock lab 1: 8-router topology with OSPF, BGP, MPLS, QoS, and redistribution tasks.","nodes":8,"tags":["azamlabs","azamlabs-v8","ccie","advanced","mock-lab"],"source_url":"https://github.com/Shadow578/eve-ng-labs"},
-    {"name":"ipv6-dual-stack","format":"azamlabs-v8","category":"ccna","desc":"IPv6 dual-stack: 4x routers with OSPFv3, BGP4+, RIPng, SLAAC, DHCPv6, and NAT64.","nodes":4,"tags":["azamlabs","azamlabs-v8","ipv6","ospfv3","bgp","dual-stack"],"source_url":"https://github.com/JeremyITLab/CCNA-Labs"}
-]
 
 def get_cluster_stats():
     stats = {}
@@ -208,13 +156,6 @@ def get_cluster_stats():
     except Exception:
         stats.update({"disk_used_gb": 0, "disk_total_gb": 0, "disk_pct": 0})
 
-    # Backup count
-    backup_dir = "/opt/azambasha/backups"
-    try:
-        stats["backup_count"] = len([f for f in os.listdir(backup_dir) if f.endswith(".tar.gz")])
-    except Exception:
-        stats["backup_count"] = 0
-
     return stats
 
 
@@ -259,18 +200,6 @@ class AzamOpsHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/azam-ops/api/stats":
             self.reply_json(get_cluster_stats())
-
-        elif parsed.path == "/azam-ops/api/backups":
-            backup_dir = "/opt/azambasha/backups"
-            try:
-                files = sorted([
-                    {"name": f, "size_kb": round(os.path.getsize(os.path.join(backup_dir, f)) / 1024, 1),
-                     "mtime": os.path.getmtime(os.path.join(backup_dir, f))}
-                    for f in os.listdir(backup_dir) if f.endswith(".tar.gz")
-                ], key=lambda x: x["mtime"], reverse=True)
-                self.reply_json({"backups": files})
-            except Exception as e:
-                self.reply_json({"backups": [], "error": str(e)})
 
         elif parsed.path == "/azam-ops/api/topology-log":
             lab = params.get("lab", [""])[0]
@@ -342,62 +271,6 @@ class AzamOpsHandler(BaseHTTPRequestHandler):
                 result["total_labs"] = len(result["all_labs"])
             self.reply_json(result)
 
-        elif parsed.path == "/azam-ops/api/templates":
-            cat_file = "/opt/azambasha/templates/catalog.json"
-            data = None
-            if os.path.isfile(cat_file):
-                try:
-                    with open(cat_file) as f:
-                        data = json.load(f)
-                except Exception:
-                    pass
-            if not data or not data.get("templates"):
-                data = {"version": "1.0", "templates": list(DEFAULT_TEMPLATES)}
-
-            # Dynamically merge any locally deployed labs under /opt/unetlab/labs/Azam-Templates
-            az_dir = "/opt/unetlab/labs/Azam-Templates"
-            if os.path.isdir(az_dir):
-                existing_names = {t.get("name") for t in data.get("templates", [])}
-                discovered = []
-                for root, dirs, files in os.walk(az_dir):
-                    for f in files:
-                        if f.endswith(".unl"):
-                            lab_name = os.path.splitext(f)[0]
-                            if lab_name in existing_names:
-                                continue
-                            cat = os.path.basename(root)
-                            meta_path = os.path.join(root, f"{lab_name}.meta.json")
-                            meta = {}
-                            if os.path.isfile(meta_path):
-                                try:
-                                    with open(meta_path) as mf:
-                                        meta = json.load(mf)
-                                except Exception:
-                                    pass
-                            fmt = meta.get("format", "azamlabs-v8")
-                            nodes = meta.get("nodes", 4)
-                            desc = meta.get("desc", f"Imported {fmt.upper()} topology ready for emulation.")
-                            source_url = meta.get("source_url", "")
-                            discovered.append({
-                                "name": lab_name,
-                                "format": fmt,
-                                "category": cat,
-                                "desc": desc,
-                                "nodes": nodes,
-                                "tags": [fmt, cat, "imported"],
-                                "source_url": source_url
-                            })
-                            existing_names.add(lab_name)
-                if discovered:
-                    data["templates"] = discovered + data["templates"]
-                    try:
-                        os.makedirs(os.path.dirname(cat_file), exist_ok=True)
-                        with open(cat_file, "w") as f:
-                            json.dump(data, f, indent=2)
-                    except Exception:
-                        pass
-            self.reply_json(data)
-
         elif parsed.path == "/azam-ops/api/notify-config":
             conf = {}
             if os.path.isfile("/etc/azamlabs/azambasha-notify.conf"):
@@ -446,16 +319,6 @@ class AzamOpsHandler(BaseHTTPRequestHandler):
                 self.reply_json(json.loads(r.stdout))
             except Exception as e:
                 self.reply_json({"error": str(e)})
-
-        elif parsed.path == "/azam-ops/api/cloud/status":
-            try:
-                r = subprocess.run(["python3", "/opt/azambasha/scripts/azambasha-cloud-backup.py", "--status", "--json"],
-                                   capture_output=True, text=True, timeout=10)
-                self.reply_json(json.loads(r.stdout))
-            except Exception as e:
-                self.reply_json({"error": str(e)})
-
-
 
         elif parsed.path == "/azam-ops/api/bridge/status":
             try:
@@ -508,26 +371,6 @@ class AzamOpsHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.reply_json({"diff": "", "error": str(e)})
 
-        elif parsed.path == "/azam-ops/api/backups/local":
-            backup_dirs = ["/opt/azambasha/backups", "/opt/unetlab/data/backups", "/opt/unetlab/data/Exports"]
-            all_backups = []
-            for bdir in backup_dirs:
-                if os.path.isdir(bdir):
-                    try:
-                        for f in os.listdir(bdir):
-                            if f.endswith(".tar.gz") or f.endswith(".zip"):
-                                p = os.path.join(bdir, f)
-                                all_backups.append({
-                                    "filename": f,
-                                    "path": p,
-                                    "size_mb": round(os.path.getsize(p) / 1024 / 1024, 2),
-                                    "mtime": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(p)))
-                                })
-                    except Exception:
-                        pass
-            all_backups.sort(key=lambda x: x.get("mtime", ""), reverse=True)
-            self.reply_json({"backups": all_backups})
-
         elif parsed.path in ["/azam-ops/api/docs/manual", "/azam-ops/api/manual.pdf"]:
             pdf_candidates = [
                 "/opt/unetlab/html/docs/manual.pdf",
@@ -551,29 +394,6 @@ class AzamOpsHandler(BaseHTTPRequestHandler):
                     self.reply_json({"error": f"Failed reading PDF: {e}"}, status=500)
                     return
             self.reply_json({"error": "Manual PDF not found"}, status=404)
-
-        elif parsed.path == "/azam-ops/api/templates/repos":
-            importer_path = "/opt/azambasha/scripts/azambasha-eve-lab-importer.py"
-            if not os.path.isfile(importer_path):
-                importer_path = os.path.join(os.path.dirname(__file__), "azambasha-eve-lab-importer.py")
-            try:
-                proc = subprocess.run(["python3", importer_path, "--list-repos", "--json"], capture_output=True, text=True, timeout=10)
-                data = json.loads(proc.stdout)
-                self.reply_json({"success": True, "repos": data})
-            except Exception as e:
-                self.reply_json({"success": False, "error": str(e)}, status=500)
-
-        elif parsed.path == "/azam-ops/api/templates/browse":
-            repo = params.get("repo", ["cml-community"])[0].strip()
-            importer_path = "/opt/azambasha/scripts/azambasha-eve-lab-importer.py"
-            if not os.path.isfile(importer_path):
-                importer_path = os.path.join(os.path.dirname(__file__), "azambasha-eve-lab-importer.py")
-            try:
-                proc = subprocess.run(["python3", importer_path, "--repo", repo, "--browse", "--json"], capture_output=True, text=True, timeout=30)
-                data = json.loads(proc.stdout)
-                self.reply_json(data)
-            except Exception as e:
-                self.reply_json({"success": False, "error": str(e)}, status=500)
 
         elif parsed.path == "/azam-ops/api/link-stats":
             stats = []
@@ -786,56 +606,6 @@ print("[*] AzamLabs Python SDK Loaded.")
             except Exception:
                 body = {}
 
-        if parsed.path == "/azam-ops/api/templates/pull":
-            repo = body.get("repo", "cml-community")
-            lab = body.get("lab", "").strip()
-            raw_url = body.get("raw_url", "").strip()
-            fmt = body.get("format", "").strip()
-            cat = body.get("category", "").strip()
-            if not lab:
-                self.reply_json({"success": False, "error": "Lab name required"}, status=400)
-                return
-
-            importer_path = "/opt/azambasha/scripts/azambasha-eve-lab-importer.py"
-            if not os.path.isfile(importer_path):
-                importer_path = os.path.join(os.path.dirname(__file__), "azambasha-eve-lab-importer.py")
-
-            cmd = ["python3", importer_path, "--repo", repo, "--pull", lab, "--json"]
-            if raw_url:
-                cmd.extend(["--raw-url", raw_url])
-            if fmt:
-                cmd.extend(["--format", fmt])
-            if cat:
-                cmd.extend(["--category", cat])
-
-            try:
-                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-                out = proc.stdout.strip()
-                res_data = None
-                for line in reversed(out.splitlines()):
-                    line = line.strip()
-                    if line.startswith("{") and line.endswith("}"):
-                        try:
-                            res_data = json.loads(line)
-                            break
-                        except Exception:
-                            pass
-                if not res_data:
-                    res_data = json.loads(out)
-                self.reply_json(res_data)
-            except Exception as e:
-                res_data = {
-                    "success": proc.returncode == 0 if 'proc' in locals() else False,
-                    "unl_path": f"/opt/unetlab/labs/Azam-Templates/{cat or 'imported'}/{lab}.unl",
-                    "lab_name": lab,
-                    "error": str(e),
-                    "output": proc.stdout.strip() if 'proc' in locals() else ""
-                }
-                self.reply_json(res_data, status=200 if res_data.get("success") else 500)
-            return
-
-
-
         if parsed.path in ("/azam-ops/api/node-ksm-tune", "/node-ksm-tune", "/api/azam/node-ksm-tune"):
             ksm_dir = "/sys/kernel/mm/ksm"
             applied = False
@@ -1019,40 +789,6 @@ print("[*] AzamLabs Python SDK Loaded.")
                         cmd.append("--probe-console")
                     if ksm:
                         cmd.append("--ksm")
-                elif tool == "templates-deploy":
-                    tmpl = params.get("template", "").strip()
-                    if not tmpl:
-                        self.reply_json({"error": "template name required"}, status=400)
-                        return
-                    cmd = ["bash", "/usr/local/bin/azam-templates", "deploy", tmpl]
-                elif tool == "templates-browse":
-                    repo = params.get("repo", "cml-community").strip()
-                    cmd = ["python3", "/opt/azambasha/scripts/azambasha-eve-lab-importer.py", "--repo", repo, "--browse"]
-                elif tool == "templates-pull":
-                    repo = params.get("repo", "cml-community").strip()
-                    lab = params.get("lab", "").strip()
-                    raw_url = params.get("raw_url", "").strip()
-                    fmt = params.get("format", "").strip()
-                    cat = params.get("category", "").strip()
-                    if not lab:
-                        self.reply_json({"error": "lab name required"}, status=400)
-                        return
-                    cmd = ["python3", "/opt/azambasha/scripts/azambasha-eve-lab-importer.py", "--repo", repo, "--pull", lab]
-                    if raw_url:
-                        cmd.extend(["--raw-url", raw_url])
-                    if fmt:
-                        cmd.extend(["--format", fmt])
-                    if cat:
-                        cmd.extend(["--category", cat])
-                elif tool == "templates-fix":
-                    lab_file = params.get("file", "").strip()
-                    if not lab_file:
-                        self.reply_json({"error": "file path required"}, status=400)
-                        return
-                    cmd = ["python3", "/opt/azambasha/scripts/azambasha-eve-lab-importer.py", "--fix", lab_file]
-                elif tool == "templates-import-cml":
-                    src = params.get("source", "test").strip()
-                    cmd = ["python3", "/opt/azambasha/scripts/azambasha-eve-lab-importer.py", "--import-cml", src]
                 elif tool == "topology-log":
                     lab = params.get("lab", "").strip()
                     limit = str(params.get("limit", "20"))
@@ -1072,28 +808,13 @@ print("[*] AzamLabs Python SDK Loaded.")
                         self.reply_json({"error": "PID required"}, status=400)
                         return
                     cmd = ["python3", "/usr/local/bin/azam-perf", "--resume", pid]
-                elif tool == "backup-create":
-                    lab = params.get("lab", "").strip()
-                    cmd = ["bash", "/usr/local/bin/azam-backup", "--backup"]
-                    if lab:
-                        cmd.extend(["--lab", lab])
-                elif tool == "backup-restore":
-                    fname = params.get("file", "").strip()
-                    if not fname:
-                        self.reply_json({"error": "backup filename required"}, status=400)
-                        return
-                    cmd = ["bash", "/usr/local/bin/azam-restore", fname]
                 else:
                     self.reply_json({"error": "Command not configured"}, status=400)
                     return
 
             # Append extra params
-            if tool == "backup-list" and params.get("restore_file"):
-                cmd = ["bash", "/usr/local/bin/azam-restore", params["restore_file"]]
-            elif tool == "ssl-generate" and params.get("ip"):
+            if tool == "ssl-generate" and params.get("ip"):
                 cmd = ["bash", "/usr/local/bin/azam-ssl", "--generate", params["ip"]]
-            elif tool == "templates-list" and params.get("deploy"):
-                cmd = ["bash", "/usr/local/bin/azam-templates", "deploy", params["deploy"]]
 
             # SSE streaming response
             self.send_response(200)
@@ -1124,34 +845,6 @@ print("[*] AzamLabs Python SDK Loaded.")
             finally:
                 self.close_connection = True
 
-        elif parsed.path == "/azam-ops/api/restore":
-            fname = body.get("filename", "")
-            if not fname or "/" in fname.replace("azam_lab_backup", ""):
-                self.reply_json({"error": "Invalid filename"}, status=400)
-                return
-            full_path = f"/opt/azambasha/backups/{fname}"
-            if not os.path.isfile(full_path):
-                self.reply_json({"error": "Backup file not found"}, status=404)
-                return
-            # Run restore
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Cache-Control", "no-cache")
-            self.send_cors()
-            self.end_headers()
-            q = queue.Queue()
-            cmd = ["bash", "/usr/local/bin/azam-restore", full_path]
-            t = threading.Thread(target=stream_command, args=(cmd, q), daemon=True)
-            t.start()
-            try:
-                while True:
-                    item = q.get(timeout=60)
-                    self.wfile.write(f"data: {json.dumps(item)}\n\n".encode("utf-8"))
-                    self.wfile.flush()
-                    if item.get("type") == "done":
-                        break
-            except (BrokenPipeError, ConnectionResetError):
-                pass
         elif parsed.path == "/azam-ops/api/perf-kill":
             role = self.headers.get("X-User-Role", "0")
             if str(role).strip() != "0":

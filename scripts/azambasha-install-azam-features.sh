@@ -79,13 +79,11 @@ ln -sf "${SCRIPTS}/azambasha-ai-copilot.py"       /usr/local/bin/azam-ai
 ln -sf "${SCRIPTS}/azambasha-config-diff.py"      /usr/local/bin/azam-config-diff
 ln -sf "${SCRIPTS}/azambasha-ping-mesh.py"        /usr/local/bin/azam-ping-mesh
 ln -sf "${SCRIPTS}/azambasha-scheduler.py"        /usr/local/bin/azam-scheduler
-ln -sf "${SCRIPTS}/azambasha-cloud-backup.py"     /usr/local/bin/azam-cloud-backup
-rm -f /usr/local/bin/azam-grader /usr/local/bin/azam-sniffer /usr/local/bin/azam-notify 2>/dev/null || true
+rm -f /usr/local/bin/azam-grader /usr/local/bin/azam-sniffer /usr/local/bin/azam-notify /usr/local/bin/azam-cloud-backup /usr/local/bin/azam-templates 2>/dev/null || true
 ln -sf "${SCRIPTS}/azambasha-cloud-bridge.py"     /usr/local/bin/azam-cloud-bridge
 rm -f /usr/local/bin/azam-image-shrink 2>/dev/null || true
 ln -sf "${SCRIPTS}/azambasha-topology-doc.py"     /usr/local/bin/azam-topology-doc
 ln -sf "${SCRIPTS}/azambasha-bootstorm.py"        /usr/local/bin/azam-bootstorm
-ln -sf "${SCRIPTS}/azambasha-templates.sh"        /usr/local/bin/azam-templates
 ln -sf "${SCRIPTS}/azambasha-perf.py"             /usr/local/bin/azam-perf
 ln -sf "${SCRIPTS}/azambasha-console-fix.sh"      /usr/local/bin/azam-console-fix
 ln -sf "${SCRIPTS}/azambasha-lab-backup.sh"       /usr/local/bin/azam-backup

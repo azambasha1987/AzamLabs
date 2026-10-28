@@ -225,9 +225,6 @@
       azRunTool('ssl-generate', { ip: ip }, sslBtn, 'az-term-ssl-gen');
     });
 
-    // Wire backup list
-    overlay.querySelector('#az-backup-refresh').addEventListener('click', azLoadBackups);
-
     // Wire topology log
     overlay.querySelector('#az-vcs-log-btn').addEventListener('click', function () {
       var lab = overlay.querySelector('#az-vcs-lab').value.trim();
@@ -238,7 +235,6 @@
     // Load initial data
     azLoadStats();
     setInterval(azLoadStats, 20000);
-    azLoadBackups();
 
     // Open to overview tab
     azSwitchTab('overview');
@@ -286,7 +282,6 @@
         azSet('az-s-watchdog', d.watchdog === 'active' ? '● Active' : '○ Inactive');
         azSet('az-s-cert', d.cert_expiry || '—');
         azSet('az-s-disk', (d.disk_used_gb || 0) + ' GB / ' + (d.disk_total_gb || 0) + ' GB (' + (d.disk_pct || 0) + '%)');
-        azSet('az-s-backups', (d.backup_count || 0) + ' archive(s)');
       })
       .catch(function () {});
   }
@@ -376,63 +371,6 @@
     return '#94a3b8';
   }
 
-  /* ── Backups ────────────────────────────────────────────── */
-  function azLoadBackups() {
-    fetch(API_BASE + '/backups')
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        var tbody = document.getElementById('az-backup-tbody');
-        if (!tbody) return;
-        if (!d.backups || d.backups.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3" style="color:#475569;text-align:center;padding:16px">No backups yet — create one below.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = d.backups.map(function (b) {
-          var dt = new Date(b.mtime * 1000).toLocaleString();
-          return '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">' +
-            '<td style="padding:8px 12px;font-family:monospace;font-size:11px;color:#94a3b8">' + b.name + '</td>' +
-            '<td style="padding:8px 12px;font-size:12px">' + b.size_kb + ' KB</td>' +
-            '<td style="padding:8px 12px">' +
-              '<button onclick="azRestoreBackup(\'' + b.name + '\',this)" ' +
-                'style="padding:4px 10px;font-size:11px;background:rgba(239,68,68,0.15);color:#ef4444;' +
-                       'border:1px solid rgba(239,68,68,0.25);border-radius:6px;cursor:pointer">⏪ Restore</button>' +
-            '</td>' +
-          '</tr>';
-        }).join('');
-        window.azRestoreBackup = function (filename, btn) {
-          if (!confirm('Restore ' + filename + '? Current lab data will be overwritten.')) return;
-          btn.disabled = true;
-          var term = document.getElementById('az-term-restore');
-          if (term) term.style.display = 'block';
-          fetch(API_BASE + '/restore', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: filename })
-          }).then(function (res) {
-            var reader = res.body.getReader(); var dec = new TextDecoder(); var buf = '';
-            function pump() {
-              reader.read().then(function (r) {
-                if (r.done) { btn.disabled = false; return; }
-                buf += dec.decode(r.value, { stream: true });
-                var lines = buf.split('\n'); buf = lines.pop();
-                lines.forEach(function (line) {
-                  if (!line.startsWith('data:')) return;
-                  try {
-                    var obj = JSON.parse(line.slice(5).trim());
-                    if (obj.type === 'line' && term) {
-                      var d = document.createElement('div'); d.style.color = azLineColor(azStripAnsi(obj.data));
-                      d.textContent = azStripAnsi(obj.data); term.appendChild(d);
-                    } else if (obj.type === 'done') { btn.disabled = false; azToast(obj.code === 0 ? 'Restored!' : 'Restore failed', obj.code === 0 ? 'ok' : 'err'); }
-                  } catch (e) {}
-                });
-                pump();
-              }).catch(function () { btn.disabled = false; });
-            }
-            pump();
-          });
-        };
-      }).catch(function () {});
-  }
-
   /* ── Topology log ───────────────────────────────────────── */
   function azFetchLog(lab) {
     fetch(API_BASE + '/topology-log?lab=' + encodeURIComponent(lab))
@@ -515,7 +453,6 @@
       ['🔥','#8b5cf6','Hot-Node Profiler','azam-perf --once','CPU/RAM/IO snapshot — instantly spots the resource-hogging node.','perf','az-term-perf'],
       ['📐','#eab308','Capacity Estimator','azam-capacity','Max node ceiling calculation with Ultra-KSM deduplication factor.','capacity','az-term-capacity'],
       ['🩺','#22c55e','Image Doctor Check','azam-doctor --check','Validates QEMU templates, IOL license, and image compliance.','doctor','az-term-doctor'],
-      ['💾','#ef4444','Create Backup Snapshot','azam-backup --backup','Snapshot all .unl files, startup configs, and MySQL DB to timestamped archive.','backup','az-term-backup'],
       ['🖥️','#06b6d4','HTML5 Console Auto-Fix','azam-console-fix --fix','Repairs WebSocket tunnel, guacd, stale pipes, generates Windows .reg handlers.','console-fix','az-term-console'],
       ['📸','#8b5cf6','Topology Git Snapshot','azam-topology-git --snapshot','Commit all changed .unl topology files to the local Git version history.','topology-snapshot','az-term-topo'],
     ];
@@ -561,7 +498,7 @@
         /* Center Quick Search */
         '<div style="flex:1;max-width:340px;position:relative;margin:0 10px;">' +
           '<i class="fa fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:12px;"></i>' +
-          '<input type="text" id="az-filter-tools" placeholder="Filter tools (doctor, git, backup)..." style="width:100%;padding:7px 12px 7px 32px;' +
+          '<input type="text" id="az-filter-tools" placeholder="Filter tools (doctor, git, vcs)..." style="width:100%;padding:7px 12px 7px 32px;' +
             'background:rgba(0,0,0,0.45);border:1px solid rgba(56,189,248,0.25);border-radius:8px;color:#f8fafc;font-size:12px;outline:none;' +
             'transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#38bdf8\';" onblur="this.style.borderColor=\'rgba(56,189,248,0.25)\';">' +
         '</div>' +
@@ -593,7 +530,7 @@
 
       /* ── Tab bar ── */
       '<div style="display:flex;gap:2px;padding:0 20px;background:rgba(8,12,24,0.7);border-bottom:1px solid rgba(56,189,248,0.15);flex-shrink:0;overflow-x:auto">' +
-        [['overview','🏠 Overview'],['health','📊 Health'],['backup','💾 Backup & Restore'],
+        [['overview','🏠 Overview'],['health','📊 Health'],
          ['network','🌐 Network'],['security','🔒 SSL & Security'],
          ['vcs','🕰️ Topology VCS']
         ].map(function (t) {
@@ -613,7 +550,6 @@
         statCard('az-s-ram',    'RAM Usage',        '🧠', '#3b82f6') +
         statCard('az-s-cert',   'SSL Cert Expiry',  '🔒', '#8b5cf6') +
         statCard('az-s-disk',   'Disk Usage',       '💿', '#eab308') +
-        statCard('az-s-backups','Lab Backups',      '💾', '#22c55e') +
       '</div>' +
 
       /* ─ OVERVIEW ─ */
@@ -633,30 +569,6 @@
           toolCard('📐','#eab308','Capacity Estimator','azam-capacity','Node ceiling with Ultra-KSM factor.','<button style="'+BTN_PRI+'" data-az-tool="capacity" data-az-term="az-term-cap-h">▶ Run</button><div id="az-term-cap-h" style="'+TERM_STYLE+'"></div>') +
           toolCard('🩺','#22c55e','Image Doctor','azam-doctor','QEMU template and image integrity audit.','<button style="'+BTN_PRI+'" data-az-tool="doctor" data-az-term="az-term-doc-h">▶ Check</button><div id="az-term-doc-h" style="'+TERM_STYLE+'"></div>') +
           toolCard('🐕','#06b6d4','Node Watchdog','azam-watchdog','Systemd daemon — detect crashes, auto-recover.','<button style="'+BTN_PRI+'" data-az-tool="watchdog-status" data-az-term="az-term-wd-h">▶ Status</button><button style="'+BTN_SEC+';margin-left:8px" data-az-tool="watchdog-install" data-az-term="az-term-wd-h">⚙ Install</button><div id="az-term-wd-h" style="'+TERM_STYLE+'"></div>') +
-        '</div>' +
-      '</div>' +
-
-      /* ─ BACKUP ─ */
-      '<div data-az-section="backup" style="display:none">' +
-        '<div style="font-size:16px;font-weight:700;margin-bottom:16px">💾 Backup & Restore Engine</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">' +
-          toolCard('📸','#22c55e','Create Backup','azam-backup --backup','Snapshot all .unl + configs + MySQL.','<button style="'+BTN_PRI+'" data-az-tool="backup" data-az-term="az-term-bk2">💾 Backup Now</button><div id="az-term-bk2" style="'+TERM_STYLE+'"></div>') +
-          '<div style="'+CARD_STYLE+'">' +
-            '<div style="font-size:14px;font-weight:600;margin-bottom:10px">📋 Browse & Restore Backups</div>' +
-            '<div style="display:flex;gap:8px;margin-bottom:12px">' +
-              '<button id="az-backup-refresh" style="'+BTN_SM+'">🔄 Refresh</button>' +
-            '</div>' +
-            '<table style="width:100%;border-collapse:collapse">' +
-              '<thead><tr>' +
-                '<th style="text-align:left;font-size:10px;text-transform:uppercase;color:#475569;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.06)">Archive</th>' +
-                '<th style="text-align:left;font-size:10px;text-transform:uppercase;color:#475569;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.06)">Size</th>' +
-                '<th style="text-align:left;font-size:10px;text-transform:uppercase;color:#475569;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.06)">Action</th>' +
-              '</tr></thead>' +
-              '<tbody id="az-backup-tbody"><tr><td colspan="3" style="color:#475569;text-align:center;padding:16px">Click Refresh</td></tr></tbody>' +
-            '</table>' +
-            '<div id="az-term-restore" style="'+TERM_STYLE+'"></div>' +
-          '</div>' +
-          toolCard('🕰️','#8b5cf6','Topology Git Snapshot','azam-topology-git --snapshot','Commit changed .unl files to version history.','<button style="'+BTN_PRI+'" data-az-tool="topology-snapshot" data-az-term="az-term-topo-bk">▶ Snapshot</button><div id="az-term-topo-bk" style="'+TERM_STYLE+'"></div>') +
         '</div>' +
       '</div>' +
 

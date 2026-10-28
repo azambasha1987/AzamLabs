@@ -92,7 +92,7 @@ def ensure_remote_dir(sftp, remote_dir):
             except Exception:
                 pass
 
-def sync_tree(sftp, local_dir, remote_dir, dry_run=False):
+def sync_tree(sftp, local_dir, remote_dir, dry_run=False, args=None):
     uploaded = 0
     ensure_remote_dir(sftp, remote_dir)
     
@@ -111,17 +111,24 @@ def sync_tree(sftp, local_dir, remote_dir, dry_run=False):
             
             # Check size and modify time
             local_sz = os.path.getsize(local_file)
+            local_mtime = int(os.path.getmtime(local_file))
             needs_upload = True
-            try:
-                r_stat = sftp.stat(remote_file)
-                if r_stat.st_size == local_sz:
-                    needs_upload = False
-            except IOError:
-                needs_upload = True
+            force_upload = getattr(args, 'force', False) if args else False
+            if not force_upload:
+                try:
+                    r_stat = sftp.stat(remote_file)
+                    if r_stat.st_size == local_sz and int(r_stat.st_mtime) >= local_mtime:
+                        needs_upload = False
+                except IOError:
+                    needs_upload = True
                 
             if needs_upload:
                 if not dry_run:
                     sftp.put(local_file, remote_file)
+                    try:
+                        sftp.utime(remote_file, (local_mtime, local_mtime))
+                    except Exception:
+                        pass
                     if f.endswith((".sh", ".py")):
                         try:
                             sftp.chmod(remote_file, 0o755)
@@ -175,7 +182,7 @@ def deploy_host(host, user, password, port, args):
             ldir = os.path.join(BASE_DIR, sdir)
             if os.path.exists(ldir):
                 rdir = f"{remote_base}/{sdir}"
-                cnt = sync_tree(sftp, ldir, rdir, dry_run=args.dry_run)
+                cnt = sync_tree(sftp, ldir, rdir, dry_run=args.dry_run, args=args)
                 log_ok(f"Synced {sdir}/ ({cnt} files updated)")
                 
         sftp.close()
@@ -187,8 +194,8 @@ def deploy_host(host, user, password, port, args):
             execute_remote_cmd(client, f"mkdir -p /opt/unetlab/scripts && cp -f {remote_base}/scripts/azambasha-* {remote_base}/scripts/azam-* {remote_base}/scripts/apply-* {remote_base}/scripts/ksm_* {remote_base}/scripts/cisco-* /opt/unetlab/scripts/ 2>/dev/null && chmod +x /opt/unetlab/scripts/azambasha-*.sh /opt/unetlab/scripts/azambasha-*.py /opt/unetlab/scripts/apply-*.sh 2>/dev/null || true", stream=False)
             execute_remote_cmd(client, f"if [ -d {remote_base}/html/templates ]; then mkdir -p /opt/unetlab/html/templates/intel /opt/unetlab/html/templates/amd && cp -rf {remote_base}/html/templates/* /opt/unetlab/html/templates/ 2>/dev/null && cp -f {remote_base}/html/templates/intel/*.yml /opt/unetlab/html/templates/ 2>/dev/null || true; fi", stream=False)
             execute_remote_cmd(client, f"if [ -d {remote_base}/html/azam-ops ]; then mkdir -p /opt/unetlab/html && cp -rf {remote_base}/html/azam-ops /opt/unetlab/html/ 2>/dev/null && for tdir in /opt/unetlab/html/themes/*/js; do if [ -d \"$tdir\" ]; then cp -f {remote_base}/html/azam-ops/azamlabs-*.js \"$tdir/\" 2>/dev/null || true; fi; done; c_ts=$(date +%s); for th_idx in /opt/unetlab/html/themes/*/index.html; do if [ -f \"$th_idx\" ]; then for jf in azamlabs-features.js azamlabs-sequenced-console.js; do if grep -q \"$jf\" \"$th_idx\"; then sed -i \"s|/themes/[^/]*/js/${{jf}}[^\\\"]*|/themes/default/js/${{jf}}?v=${{c_ts}}|g\" \"$th_idx\" 2>/dev/null || true; else sed -i \"/<\\/body>/i <script src=\\\"/themes/default/js/${{jf}}?v=${{c_ts}}\\\"><\\/script>\" \"$th_idx\" 2>/dev/null || true; fi; done; fi; done; fi", stream=False)
-            execute_remote_cmd(client, f"ln -sf {remote_base}/scripts/azambasha-update.sh /usr/local/bin/azam-update && rm -f /usr/local/bin/azambasha-update 2>/dev/null && ln -sf {remote_base}/scripts/azambasha-quarterly-audit.sh /usr/local/bin/azam-audit && ln -sf {remote_base}/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-menu && ln -sf {remote_base}/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-fix && ln -sf {remote_base}/scripts/azambasha-satellite-join.sh /usr/local/bin/azam-satellite-join && ln -sf {remote_base}/scripts/azambasha-heavy-node-optimizer.sh /usr/local/bin/azam-optimizer && ln -sf {remote_base}/scripts/azambasha-heavy-node-optimizer.sh /usr/local/bin/azam-heavy-optimizer && ln -sf {remote_base}/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-doctor && ln -sf {remote_base}/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-image-doctor && ln -sf {remote_base}/scripts/azambasha-dry-test.py /usr/local/bin/azam-dry-test && ln -sf {remote_base}/scripts/azambasha-health-check.sh /usr/local/bin/azam-health && ln -sf {remote_base}/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstorm 2>/dev/null || true", stream=False)
-            execute_remote_cmd(client, f"if [ -f {remote_base}/scripts/azambasha-update-banner.sh ]; then bash {remote_base}/scripts/azambasha-update-banner.sh 2>/dev/null || true; fi", stream=False)
+            execute_remote_cmd(client, f"ln -sf {remote_base}/scripts/azambasha-update.sh /usr/local/bin/azam-update && rm -f /usr/local/bin/azambasha-update 2>/dev/null && ln -sf {remote_base}/scripts/azambasha-update-banner.sh /usr/local/bin/azambasha-update-banner.sh && ln -sf {remote_base}/scripts/azambasha-quarterly-audit.sh /usr/local/bin/azam-audit && ln -sf {remote_base}/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-menu && ln -sf {remote_base}/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-fix && ln -sf {remote_base}/scripts/azambasha-satellite-join.sh /usr/local/bin/azam-satellite-join && ln -sf {remote_base}/scripts/azambasha-heavy-node-optimizer.sh /usr/local/bin/azam-optimizer && ln -sf {remote_base}/scripts/azambasha-heavy-node-optimizer.sh /usr/local/bin/azam-heavy-optimizer && ln -sf {remote_base}/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-doctor && ln -sf {remote_base}/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-image-doctor && ln -sf {remote_base}/scripts/azambasha-dry-test.py /usr/local/bin/azam-dry-test && ln -sf {remote_base}/scripts/azambasha-health-check.sh /usr/local/bin/azam-health && ln -sf {remote_base}/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstorm 2>/dev/null || true", stream=False)
+            execute_remote_cmd(client, f"if [ -f {remote_base}/scripts/azambasha-update-banner.sh ]; then bash {remote_base}/scripts/azambasha-update-banner.sh || true; fi", stream=False)
             execute_remote_cmd(client, "for s in php8.5-fpm php8.4-fpm php8.3-fpm php8.2-fpm php8.1-fpm php-fpm apache2 azamlabs-satd azamlabs-brokerd azamlabs-docker-image-watcher docker; do mkdir -p /etc/systemd/system/${s}.service.d && printf '[Unit]\\nStartLimitIntervalSec=0\\nStartLimitBurst=0\\n[Service]\\nRestart=on-failure\\nRestartSec=1s\\n' > /etc/systemd/system/${s}.service.d/override.conf; done && systemctl daemon-reload 2>/dev/null && systemctl reset-failed 2>/dev/null || true", stream=False)
             execute_remote_cmd(client, "systemctl is-active azambasha-cpu-governor >/dev/null 2>&1 && systemctl restart azambasha-cpu-governor || true", stream=False)
 
@@ -299,6 +306,7 @@ def main():
     parser.add_argument("--join-only", action="store_true", help="Run satellite cluster join utility without full re-install")
     parser.add_argument("--fix-credentials", action="store_true", help="Restore Web-GUI admin credentials (admin / azam) and clear login throttles")
     parser.add_argument("--sync-version", nargs="?", const="auto", help="Synchronize Web-GUI version display to latest implemented release (e.g. 6.8.85 or auto)")
+    parser.add_argument("--force", action="store_true", help="Force upload of all files regardless of size/timestamp")
     parser.add_argument("--dry-run", action="store_true", help="Simulate sync without uploading")
 
     args = parser.parse_args()

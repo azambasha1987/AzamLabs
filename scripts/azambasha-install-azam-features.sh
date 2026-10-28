@@ -105,6 +105,7 @@ ln -sf "${SCRIPTS}/azambasha-eve-lab-importer.py"   /usr/local/bin/azam-lab-impo
 chmod +x "${SCRIPTS}/azambasha-eve-lab-importer.py" 2>/dev/null || true
 ln -sf "${SCRIPTS}/azambasha-update.sh"            /usr/local/bin/azam-update
 rm -f /usr/local/bin/azambasha-update 2>/dev/null || true
+ln -sf "${SCRIPTS}/azambasha-update-banner.sh"     /usr/local/bin/azambasha-update-banner.sh
 ln -sf "${SCRIPTS}/azambasha-quarterly-audit.sh"   /usr/local/bin/azam-audit
 ln -sf "${SCRIPTS}/azambasha-apply-all-fixes.sh"    /usr/local/bin/azam-menu
 ln -sf "${SCRIPTS}/azambasha-apply-all-fixes.sh"    /usr/local/bin/azam-fix
@@ -113,7 +114,8 @@ ln -sf "${SCRIPTS}/azambasha-satellite-join.sh"     /usr/local/bin/azam-satellit
 ln -sf "${SCRIPTS}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-optimizer
 ln -sf "${SCRIPTS}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-heavy-optimizer
 ln -sf "${SCRIPTS}/apply-heavy-node-optimizer.sh"    /usr/local/bin/apply-heavy-node-optimizer
-chmod +x "${SCRIPTS}/azambasha-update.sh" "${SCRIPTS}/azambasha-quarterly-audit.sh" "${SCRIPTS}/azambasha-apply-all-fixes.sh" "${SCRIPTS}/azambasha-satellite-join.sh" "${SCRIPTS}/azambasha-heavy-node-optimizer.sh" "${SCRIPTS}/apply-heavy-node-optimizer.sh" 2>/dev/null || true
+chmod +x "${SCRIPTS}/azambasha-update.sh" "${SCRIPTS}/azambasha-update-banner.sh" "${SCRIPTS}/azambasha-quarterly-audit.sh" "${SCRIPTS}/azambasha-apply-all-fixes.sh" "${SCRIPTS}/azambasha-satellite-join.sh" "${SCRIPTS}/azambasha-heavy-node-optimizer.sh" "${SCRIPTS}/apply-heavy-node-optimizer.sh" /usr/local/bin/azambasha-update-banner.sh 2>/dev/null || true
+bash "${SCRIPTS}/azambasha-update-banner.sh" 2>/dev/null || true
 
 
 # Install scheduler timer and 24/7 autonomous watchdog daemon

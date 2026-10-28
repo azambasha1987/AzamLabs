@@ -51,7 +51,7 @@
         'Azam-Features Enterprise Operations Center' +
       '</div>' +
       '<div style="font-size:13px;color:var(--pnq-text-muted,#94a3b8);margin-top:2px;">' +
-        'Exam grader, web Wireshark, cloud transit, image optimizer, diagram exporter & AI copilot' +
+        'Enterprise platform health, cloud transit, AI lab architect, cluster mesh & idle quotas' +
       '</div>';
 
     titleBox.appendChild(iconBox);
@@ -105,10 +105,8 @@
     var tabs = [
       { id: 'health',    name: 'Cluster Health',          icon: 'fa-heartbeat' },
       { id: 'bridge',    name: 'Cloud & LAN Transit',     icon: 'fa-globe' },
-      { id: 'doc',       name: 'Diagram & Doc Exporter',  icon: 'fa-file-code-o' },
-      { id: 'ai',        name: 'AI Lab Copilot',          icon: 'fa-magic' },
-      { id: 'diff',      name: 'Config Diff & Rollback',  icon: 'fa-history' },
-      { id: 'mesh',      name: 'Ping Mesh & Traffic Gen', icon: 'fa-exchange' },
+      { id: 'ai',        name: 'AI Lab Architect',       icon: 'fa-magic' },
+      { id: 'mesh',      name: 'Cluster Reachability',    icon: 'fa-exchange' },
       { id: 'scheduler', name: 'Idle Saver & Quotas',     icon: 'fa-clock-o' }
     ];
 
@@ -202,34 +200,7 @@
       '</div>';
     panesContainer.appendChild(pBridge);
 
-    // ── Pane 5: Diagram & Doc Exporter ──
-    var pDoc = document.createElement('div');
-    pDoc.id = 'pane-doc';
-    pDoc.style.display = 'none';
-    pDoc.innerHTML = 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
-        '<div class="card" style="background:var(--pnq-surface,#1e293b);border:1px solid var(--pnq-border,rgba(255,255,255,0.08));border-radius:10px;padding:18px;">' +
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
-            '<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.15);color:#818cf8;display:flex;align-items:center;justify-content:center;font-size:18px;"><i class="fa fa-file-code-o"></i></div>' +
-            '<div><div style="font-weight:600;font-size:15px;color:#f1f5f9;">Topology Documentation & Diagram Exporter</div><div style="font-size:12px;color:var(--pnq-text-muted,#94a3b8);">Export professional diagrams to Draw.io, Mermaid, and Markdown</div></div>' +
-          '</div>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">' +
-            '<div><label style="font-size:12px;font-weight:600;color:var(--pnq-text-muted,#94a3b8);display:block;margin-bottom:4px;">Export Format:</label>' +
-              '<select id="doc-format-select" style="width:100%;padding:8px 12px;background:rgba(0,0,0,0.25);border:1px solid var(--pnq-border,rgba(255,255,255,0.1));border-radius:6px;color:#fff;font-size:13px;">' +
-                '<option value="mermaid">Mermaid.js Diagram (Markdown / GitHub)</option>' +
-                '<option value="drawio">Draw.io XML (diagrams.net Import)</option>' +
-                '<option value="matrix">Cable Patch & IP Allocation Matrix</option>' +
-                '<option value="all">Full Documentation Package (All)</option>' +
-              '</select>' +
-            '</div>' +
-          '</div>' +
-          '<button type="button" id="btn-export-doc" class="btn btn-primary" style="background:#6366f1;border-color:#6366f1;color:#fff;"><i class="fa fa-download"></i> Generate & View Documentation</button>' +
-        '</div>' +
-        '<div id="term-doc" style="display:block;background:#050811;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;font-family:monospace;font-size:12.5px;min-height:300px;max-height:480px;overflow-y:auto;color:#38bdf8;">' +
-          '<div style="color:#64748b;">// Select format and click "Generate" to preview diagrams or cabling matrices.</div>' +
-        '</div>' +
-      '</div>';
-    panesContainer.appendChild(pDoc);
+
 
     // ── Pane 7: AI Lab Copilot ──
     var pAi = document.createElement('div');
@@ -274,49 +245,23 @@
       '</div>';
     panesContainer.appendChild(pAi);
 
-    // ── Pane 8: Config Diff & Rollback ──
-    var pDiff = document.createElement('div');
-    pDiff.id = 'pane-diff';
-    pDiff.style.display = 'none';
-    pDiff.innerHTML = 
-      '<div style="display:flex;flex-direction:column;gap:16px;">' +
-        '<div class="card" style="background:var(--pnq-surface,#1e293b);border:1px solid var(--pnq-border,rgba(255,255,255,0.08));border-radius:10px;padding:18px;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">' +
-            '<div style="display:flex;align-items:center;gap:12px;">' +
-              '<div style="width:38px;height:38px;border-radius:8px;background:rgba(14,165,233,0.15);color:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:17px;"><i class="fa fa-history"></i></div>' +
-              '<div><div style="font-weight:600;font-size:15px;color:#f1f5f9;">Device Configuration History & Visual Diff</div><div style="font-size:12px;color:var(--pnq-text-muted,#94a3b8);">Capture and compare running-configs before and after changes</div></div>' +
-            '</div>' +
-            '<div style="display:flex;gap:10px;">' +
-              '<button type="button" id="btn-diff-snap" class="btn btn-primary" style="background:#0ea5e9;border-color:#0ea5e9;color:#fff;"><i class="fa fa-camera"></i> Snapshot Running-Configs</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div id="term-diff" style="display:none;background:#050811;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;font-family:monospace;font-size:12.5px;max-height:360px;overflow-y:auto;color:#e2e8f0;"></div>' +
-      '</div>';
-    panesContainer.appendChild(pDiff);
 
-    // ── Pane 9: Ping Mesh & Traffic Generator ──
+
+    // ── Pane 9: Cluster Reachability Mesh ──
     var pMesh = document.createElement('div');
     pMesh.id = 'pane-mesh';
     pMesh.style.display = 'none';
     pMesh.innerHTML = 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+      '<div style="display:flex;flex-direction:column;gap:16px;">' +
         '<div class="card" style="background:var(--pnq-surface,#1e293b);border:1px solid var(--pnq-border,rgba(255,255,255,0.08));border-radius:10px;padding:18px;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
-            '<div style="font-weight:600;font-size:15px;"><i class="fa fa-table"></i> Data Plane Reachability Matrix</div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:12px;">' +
+            '<div>' +
+              '<div style="font-weight:600;font-size:15px;color:#f1f5f9;"><i class="fa fa-table" style="color:#0ea5e9;margin-right:8px;"></i> Cluster Data Plane Reachability Matrix</div>' +
+              '<div style="font-size:12px;color:var(--pnq-text-muted,#94a3b8);margin-top:2px;">Probes ICMP latency and MTU 9000 reachability across Master and Satellite worker nodes</div>' +
+            '</div>' +
             '<button type="button" id="btn-mesh-sweep" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> Run Mesh Sweep</button>' +
           '</div>' +
-          '<div id="az-mesh-table" style="font-size:13px;color:var(--pnq-text-muted,#94a3b8);">Click "Run Mesh Sweep" to test IP reachability.</div>' +
-        '</div>' +
-        '<div class="card" style="background:var(--pnq-surface,#1e293b);border:1px solid var(--pnq-border,rgba(255,255,255,0.08));border-radius:10px;padding:18px;">' +
-          '<div style="font-weight:600;font-size:15px;margin-bottom:12px;"><i class="fa fa-bolt"></i> Synthetic Link Traffic Generator</div>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">' +
-            '<div><label style="font-size:12px;font-weight:600;color:var(--pnq-text-muted,#94a3b8);display:block;margin-bottom:4px;">Target Host IP:</label><input type="text" id="traffic-target" value="192.168.1.22" style="width:100%;padding:7px 12px;background:rgba(0,0,0,0.25);border:1px solid var(--pnq-border,rgba(255,255,255,0.1));border-radius:6px;color:#fff;font-size:12.5px;"></div>' +
-            '<div><label style="font-size:12px;font-weight:600;color:var(--pnq-text-muted,#94a3b8);display:block;margin-bottom:4px;">Burst Rate (Mbps):</label><input type="number" id="traffic-rate" value="10" min="1" max="1000" style="width:100%;padding:7px 12px;background:rgba(0,0,0,0.25);border:1px solid var(--pnq-border,rgba(255,255,255,0.1));border-radius:6px;color:#fff;font-size:12.5px;"></div>' +
-            '<div><label style="font-size:12px;font-weight:600;color:var(--pnq-text-muted,#94a3b8);display:block;margin-bottom:4px;">Duration (Seconds):</label><input type="number" id="traffic-dur" value="5" min="1" max="60" style="width:100%;padding:7px 12px;background:rgba(0,0,0,0.25);border:1px solid var(--pnq-border,rgba(255,255,255,0.1));border-radius:6px;color:#fff;font-size:12.5px;"></div>' +
-          '</div>' +
-          '<button type="button" id="btn-traffic-start" class="btn btn-primary" style="background:#10b981;border-color:#10b981;color:#fff;"><i class="fa fa-play"></i> Inject Traffic Burst</button>' +
-          '<div id="term-traffic" style="display:none;margin-top:12px;background:#050811;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;max-height:160px;overflow-y:auto;"></div>' +
+          '<div id="az-mesh-table" style="font-size:13px;color:var(--pnq-text-muted,#94a3b8);background:rgba(0,0,0,0.25);border-radius:8px;padding:14px;border:1px solid var(--pnq-border,rgba(255,255,255,0.06));">Click "Run Mesh Sweep" to test IP reachability across the cluster.</div>' +
         '</div>' +
       '</div>';
     panesContainer.appendChild(pMesh);
@@ -408,14 +353,7 @@
 
 
 
-    // Diagram Export
-    var btnDoc = container.querySelector('#btn-export-doc');
-    if (btnDoc) {
-      btnDoc.onclick = function () {
-        var fmt = document.getElementById('doc-format-select').value;
-        runTool('topology-doc', { format: fmt }, btnDoc, 'term-doc');
-      };
-    }
+
 
     // AI Copilot Generate
     var btnAiGen = container.querySelector('#btn-ai-gen');
@@ -436,13 +374,7 @@
       };
     }
 
-    // Config Snapshot
-    var btnDiffSnap = container.querySelector('#btn-diff-snap');
-    if (btnDiffSnap) {
-      btnDiffSnap.onclick = function () {
-        runTool('config-snapshot', {}, btnDiffSnap, 'term-diff');
-      };
-    }
+
 
     // Ping Mesh Sweep
     var btnMesh = container.querySelector('#btn-mesh-sweep');
@@ -450,16 +382,7 @@
       btnMesh.onclick = loadMesh;
     }
 
-    // Traffic Generator
-    var btnTraffic = container.querySelector('#btn-traffic-start');
-    if (btnTraffic) {
-      btnTraffic.onclick = function () {
-        var tgt = document.getElementById('traffic-target').value.trim();
-        var rate = document.getElementById('traffic-rate').value.trim();
-        var dur = document.getElementById('traffic-dur').value.trim();
-        runTool('mesh-traffic', { target: tgt, rate: rate, duration: dur }, btnTraffic, 'term-traffic');
-      };
-    }
+
 
 
 

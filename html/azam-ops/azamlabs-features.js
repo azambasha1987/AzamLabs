@@ -532,7 +532,9 @@
       '<div style="display:flex;gap:2px;padding:0 20px;background:rgba(8,12,24,0.7);border-bottom:1px solid rgba(56,189,248,0.15);flex-shrink:0;overflow-x:auto">' +
         [['overview','🏠 Overview'],['health','📊 Health'],
          ['network','🌐 Network'],['security','🔒 SSL & Security'],
-         ['vcs','🕰️ Topology VCS']
+         ['vcs','🕰️ Topology VCS'],
+         ['configs','📸 Config Diff & Rollback'],
+         ['exporter','📖 Diagram & Doc Exporter']
         ].map(function (t) {
           return '<button data-az-tab="' + t[0] + '" style="' +
             'display:flex;align-items:center;gap:6px;padding:12px 16px;border:none;background:none;' +
@@ -596,6 +598,14 @@
             '</div>' +
           '</div>' +
           toolCard('🖥️','#22c55e','HTML5 Console Auto-Fixer','azam-console-fix','WebSocket tunnel, guacd, stale pipes + Windows .reg URL handlers.','<button style="'+BTN_PRI+'" data-az-tool="console-fix" data-az-term="az-term-con-n">🔧 Fix Now</button>&nbsp;<button style="'+BTN_SEC+'" data-az-tool="console-check" data-az-term="az-term-con-n">▶ Check</button><div id="az-term-con-n" style="'+TERM_STYLE+'"></div>') +
+          '<div style="'+CARD_STYLE+'">' +
+            '<div style="font-size:14px;font-weight:600;margin-bottom:4px">⚡ Synthetic Link Traffic Generator</div>' +
+            '<div style="font-family:monospace;font-size:10px;color:#10b981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:8px">Inject Traffic Burst on Simulated Link</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-bottom:10px">Inject configurable Mbps burst traffic into router interfaces to test QoS, latency, and failovers.</div>' +
+            '<input id="az-traffic-ip" style="'+INPUT_STYLE+';margin-bottom:8px" type="text" placeholder="Target Router / Link IP (e.g. 10.0.0.1)">' +
+            '<button style="'+BTN_PRI+'" data-az-tool="ping-mesh" data-az-term="az-term-traffic">▶ Run Traffic Test</button>' +
+            '<div id="az-term-traffic" style="'+TERM_STYLE+'"></div>' +
+          '</div>' +
         '</div>' +
       '</div>' +
 
@@ -628,6 +638,47 @@
             '<input id="az-vcs-lab" style="'+INPUT_STYLE+';margin-bottom:10px" type="text" placeholder="Lab name (e.g. ccna-routing)">' +
             '<button id="az-vcs-log-btn" style="'+BTN_PRI+'">▶ Show History</button>' +
             '<div id="az-term-vcs-log" style="'+TERM_STYLE+'"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      /* ─ CONFIGS (Config Diff & Rollback) ─ */
+      '<div data-az-section="configs" style="display:none">' +
+        '<div style="font-size:16px;font-weight:700;margin-bottom:16px">📸 Device Configuration History & Rollback</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">' +
+          '<div style="'+CARD_STYLE+'">' +
+            '<div style="font-size:14px;font-weight:600;margin-bottom:4px">📸 Snapshot Running-Configs</div>' +
+            '<div style="font-family:monospace;font-size:10px;color:#0ea5e9;background:rgba(14,165,233,.1);padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:8px">azam-config-diff --snapshot</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Captures timestamped running-configurations across all active nodes in this topology.</div>' +
+            '<button style="'+BTN_PRI+'" data-az-tool="config-snapshot" data-az-term="az-term-cfg-sn">▶ Snapshot Now</button>' +
+            '<div id="az-term-cfg-sn" style="'+TERM_STYLE+'"></div>' +
+          '</div>' +
+          '<div style="'+CARD_STYLE+'">' +
+            '<div style="font-size:14px;font-weight:600;margin-bottom:4px">🔍 Visual Config Diff & Revisions</div>' +
+            '<div style="font-family:monospace;font-size:10px;color:#3b82f6;background:rgba(59,130,246,.1);padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:8px">azam-config-diff --nodes</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-bottom:12px">View tracked revision history and diff running-config changes before and after configurations.</div>' +
+            '<button style="'+BTN_PRI+'" data-az-tool="config-nodes" data-az-term="az-term-cfg-diff">🔍 View Config Timeline</button>' +
+            '<div id="az-term-cfg-diff" style="'+TERM_STYLE+'"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      /* ─ EXPORTER (Diagram & Doc Exporter) ─ */
+      '<div data-az-section="exporter" style="display:none">' +
+        '<div style="font-size:16px;font-weight:700;margin-bottom:16px">📖 Topology Diagram & Workbook Exporter</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">' +
+          '<div style="'+CARD_STYLE+'">' +
+            '<div style="font-size:14px;font-weight:600;margin-bottom:4px">📐 Export Topology Diagram (Mermaid / Draw.io)</div>' +
+            '<div style="font-family:monospace;font-size:10px;color:#8b5cf6;background:rgba(139,92,246,.1);padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:8px">azam-topology-doc --format mermaid</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Renders the active topology layout, interface wiring, and IP map into exportable diagrams.</div>' +
+            '<button style="'+BTN_PRI+'" data-az-tool="topology-snapshot" data-az-term="az-term-exp-diag">📐 Generate Diagram</button>' +
+            '<div id="az-term-exp-diag" style="'+TERM_STYLE+'"></div>' +
+          '</div>' +
+          '<div style="'+CARD_STYLE+'">' +
+            '<div style="font-size:14px;font-weight:600;margin-bottom:4px">📚 Compile Student Lab Workbook</div>' +
+            '<div style="font-family:monospace;font-size:10px;color:#10b981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:8px">azam-topology-doc --format all</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Builds a complete PDF/HTML workbook containing IP table, device credentials, and topology diagrams.</div>' +
+            '<a href="/docs/manual.pdf" target="_blank" style="'+BTN_PRI+';display:inline-flex;align-items:center;gap:6px;text-decoration:none;"><i class="fa fa-book"></i> Open Operations Manual</a>' +
           '</div>' +
         '</div>' +
       '</div>' +

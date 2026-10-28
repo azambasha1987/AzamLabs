@@ -113,3 +113,4 @@ def test_node_syntax_check_if_available():
     for js_path in [MAIN_JS, CANVAS_JS]:
         res = subprocess.run([node_cmd, "-c", js_path], capture_output=True, text=True)
         assert res.returncode == 0, f"node -c failed on {js_path}: {res.stderr}"
+

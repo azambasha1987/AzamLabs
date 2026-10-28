@@ -283,6 +283,7 @@ sync_from_github() {
     ln -sf /opt/unetlab/scripts/azambasha-image-doctor.sh /usr/local/bin/azam-image-doctor 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstorm 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-sync-network-config.sh /usr/local/bin/azam-netcfg 2>/dev/null || true
+    ln -sf /opt/unetlab/scripts/azambasha-apt-guard.sh /usr/local/bin/azam-apt-guard 2>/dev/null || true
 
     SCRIPT_DIR="/opt/unetlab/scripts"
 
@@ -578,6 +579,10 @@ EOF_OVERRIDE
     # Ensure azam-ops-api service and bootstorm symlinks are up-to-date and restarted
     ln -sf "${SCRIPT_DIR}/azambasha-bootstorm.py" /usr/local/bin/azam-bootstorm 2>/dev/null || true
     systemctl restart azam-ops-api.service 2>/dev/null || true
+    if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
+        bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" --enable >/dev/null 2>&1 || true
+        log_ok "Master Safe APT Guard: ${BOLD}ENGAGED (/usr/local/bin/apt active)${RESET}"
+    fi
 }
 
 verify_and_stabilize_satellite() {
@@ -705,6 +710,12 @@ EOF_SATD
         /usr/local/bin/azambasha-update-banner.sh >/dev/null 2>&1 || true
     elif [ -f "${SCRIPT_DIR}/azambasha-update-banner.sh" ]; then
         bash "${SCRIPT_DIR}/azambasha-update-banner.sh" >/dev/null 2>&1 || true
+    fi
+
+    # 4d. Ensure Safe APT Guard is Engaged on Satellite Node
+    if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
+        bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" --enable >/dev/null 2>&1 || true
+        log_ok "Satellite Safe APT Guard: ${BOLD}ENGAGED (/usr/local/bin/apt active)${RESET}"
     fi
 
     # 5. Live Satellite Verification Probe

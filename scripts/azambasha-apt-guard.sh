@@ -4,10 +4,11 @@
 # Ubuntu 24.04 / 26.04+ Native Architecture
 #
 # Prevents accidental destruction of AzamLabs virtualization environment:
-# 1. Intercepts 'apt upgrade', 'dist-upgrade', and 'full-upgrade' (prevents kernel/PHP break).
-# 2. Intercepts 'apt autoremove' (prevents purging 32-bit IOL libraries & DKMS headers).
-# 3. Permits all safe operations: 'apt update', 'apt install', 'apt search', 'apt show'.
-# 4. Supports emergency override: --force-azam-override
+# 1. Diverts /usr/bin/apt and /usr/bin/apt-get via dpkg-divert to *.real.
+# 2. Intercepts 'apt upgrade', 'dist-upgrade', and 'full-upgrade' (prevents kernel/PHP break).
+# 3. Intercepts 'apt autoremove' (prevents purging 32-bit IOL libraries & DKMS headers).
+# 4. Permits all safe operations: 'apt update', 'apt install', 'apt search', 'apt show'.
+# 5. Supports emergency override: --force-azam-override
 #
 # Usage:
 #   sudo bash scripts/azambasha-apt-guard.sh --enable   # Install & engage guard (default)
@@ -16,9 +17,12 @@
 # ==============================================================================
 set -euo pipefail
 
-APT_WRAPPER="/usr/local/bin/apt"
-APT_GET_WRAPPER="/usr/local/bin/apt-get"
+APT_SYS_BIN="/usr/bin/apt"
+APT_GET_SYS_BIN="/usr/bin/apt-get"
+APT_LOCAL_BIN="/usr/local/bin/apt"
+APT_GET_LOCAL_BIN="/usr/local/bin/apt-get"
 APT_CONF_HOOK="/etc/apt/apt.conf.d/99azamlabs-apt-guard"
+PROFILE_HOOK="/etc/profile.d/azamlabs-apt-guard.sh"
 
 # Color tokens
 BOLD="\033[1m"
@@ -40,20 +44,25 @@ if [[ "${1:-}" =~ ^(--check|--status|-c)$ ]]; then
     echo "         AzamLabs APT Guard Status Diagnostic Probe         "
     echo "============================================================"
     
-    echo -n "[*] /usr/local/bin/apt wrapper       : "
-    if [ -f "$APT_WRAPPER" ] && grep -q "BREAK AzamLabs" "$APT_WRAPPER" 2>/dev/null; then
-        echo -e "${GREEN}ACTIVE (Intercepting upgrade & autoremove)${RESET}"
-    elif [ -f "$APT_WRAPPER" ]; then
-        echo -e "${YELLOW}CUSTOM / UNRECOGNIZED WRAPPER${RESET}"
+    echo -n "[*] Binary Diversion (/usr/bin/apt)  : "
+    if dpkg-divert --list /usr/bin/apt 2>/dev/null | grep -q "apt.real"; then
+        echo -e "${GREEN}DIVERTED (dpkg-divert active -> apt.real)${RESET}"
     else
-        echo -e "${RED}DISABLED (Native APT active)${RESET}"
+        echo -e "${YELLOW}STANDARD (No diversion)${RESET}"
     fi
 
-    echo -n "[*] /usr/local/bin/apt-get wrapper   : "
-    if [ -L "$APT_GET_WRAPPER" ] || [ -f "$APT_GET_WRAPPER" ]; then
-        echo -e "${GREEN}ACTIVE${RESET}"
+    echo -n "[*] /usr/bin/apt protective wrapper  : "
+    if [ -f "$APT_SYS_BIN" ] && grep -q "BREAK AzamLabs" "$APT_SYS_BIN" 2>/dev/null; then
+        echo -e "${GREEN}ACTIVE (Intercepting upgrade & autoremove)${RESET}"
     else
-        echo -e "${RED}DISABLED${RESET}"
+        echo -e "${RED}DISABLED (Native binary)${RESET}"
+    fi
+
+    echo -n "[*] /usr/local/bin/apt wrapper       : "
+    if [ -e "$APT_LOCAL_BIN" ]; then
+        echo -e "${GREEN}ENGAGED ($APT_LOCAL_BIN)${RESET}"
+    else
+        echo -e "${YELLOW}NOT PRESENT${RESET}"
     fi
 
     echo -n "[*] APT Configuration Hook           : "
@@ -63,12 +72,11 @@ if [[ "${1:-}" =~ ^(--check|--status|-c)$ ]]; then
         echo -e "${RED}DISABLED${RESET}"
     fi
 
-    echo -n "[*] Active Default 'apt' in PATH     : "
-    ACTIVE_APT="$(which apt 2>/dev/null || echo "not found")"
-    if [ "$ACTIVE_APT" = "$APT_WRAPPER" ]; then
-        echo -e "${GREEN}${ACTIVE_APT} (Protected)${RESET}"
+    echo -n "[*] Shell Cache Invalidation Hook    : "
+    if [ -f "$PROFILE_HOOK" ]; then
+        echo -e "${GREEN}ENGAGED ($PROFILE_HOOK)${RESET}"
     else
-        echo -e "${YELLOW}${ACTIVE_APT} (Direct)${RESET}"
+        echo -e "${RED}DISABLED${RESET}"
     fi
     echo "============================================================"
     exit 0
@@ -86,12 +94,23 @@ if [[ "${1:-}" =~ ^(--disable|--unblock|--restore|-d)$ ]]; then
     echo "           Disabling AzamLabs APT Guard Subsystem           "
     echo "============================================================"
     
-    log_info "Removing CLI wrappers..."
-    rm -f "$APT_WRAPPER" "$APT_GET_WRAPPER"
+    log_info "Removing protective wrappers..."
+    rm -f "$APT_LOCAL_BIN" "$APT_GET_LOCAL_BIN" "$PROFILE_HOOK" "$APT_CONF_HOOK"
     
-    log_info "Removing APT configuration hooks..."
-    rm -f "$APT_CONF_HOOK"
+    # Remove wrappers if diverted
+    if dpkg-divert --list /usr/bin/apt 2>/dev/null | grep -q "apt.real"; then
+        log_info "Reverting /usr/bin/apt diversion..."
+        rm -f "$APT_SYS_BIN"
+        dpkg-divert --rename --remove "$APT_SYS_BIN" 2>/dev/null || true
+    fi
+
+    if dpkg-divert --list /usr/bin/apt-get 2>/dev/null | grep -q "apt-get.real"; then
+        log_info "Reverting /usr/bin/apt-get diversion..."
+        rm -f "$APT_GET_SYS_BIN"
+        dpkg-divert --rename --remove "$APT_GET_SYS_BIN" 2>/dev/null || true
+    fi
     
+    hash -d apt apt-get 2>/dev/null || true
     log_ok "AzamLabs APT Guard has been disabled. Native APT restored."
     exit 0
 fi
@@ -101,16 +120,34 @@ echo "============================================================"
 echo "          Engaging AzamLabs Safe APT Guard Subsystem         "
 echo "============================================================"
 
-mkdir -p /usr/local/bin /etc/apt/apt.conf.d
+mkdir -p /usr/local/bin /usr/bin /etc/apt/apt.conf.d /etc/profile.d
 
-log_info "Generating high-priority CLI wrapper: ${APT_WRAPPER}..."
-cat > "$APT_WRAPPER" << 'WRAPPER_EOF'
+# 1. Divert native binaries so it is impossible to bypass even in existing shells
+if ! dpkg-divert --list /usr/bin/apt 2>/dev/null | grep -q "apt.real"; then
+    log_info "Diverting /usr/bin/apt -> /usr/bin/apt.real..."
+    dpkg-divert --add --rename --divert /usr/bin/apt.real /usr/bin/apt
+fi
+
+if ! dpkg-divert --list /usr/bin/apt-get 2>/dev/null | grep -q "apt-get.real"; then
+    log_info "Diverting /usr/bin/apt-get -> /usr/bin/apt-get.real..."
+    dpkg-divert --add --rename --divert /usr/bin/apt-get.real /usr/bin/apt-get
+fi
+
+log_info "Deploying universal protective wrapper to /usr/bin/apt..."
+cat > "$APT_SYS_BIN" << 'WRAPPER_EOF'
 #!/usr/bin/env bash
 # ==============================================================================
 # AzamLabs Protective APT Interceptor Wrapper
 # Protects system from destructive upgrades and autoremove operations
 # ==============================================================================
-REAL_BIN="/usr/bin/apt"
+BIN_NAME="$(basename "$0")"
+if [ "$BIN_NAME" = "apt-get" ]; then
+    REAL_BIN="/usr/bin/apt-get.real"
+else
+    REAL_BIN="/usr/bin/apt.real"
+fi
+[ -x "$REAL_BIN" ] || REAL_BIN="/usr/bin/apt.real"
+
 FORCE_OVERRIDE=0
 
 # Parse arguments to detect emergency override flag
@@ -161,11 +198,19 @@ fi
 exec "$REAL_BIN" "${ARGS[@]}"
 WRAPPER_EOF
 
-chmod 0755 "$APT_WRAPPER"
-ln -sf "$APT_WRAPPER" "$APT_GET_WRAPPER"
-log_ok "CLI wrappers deployed in /usr/local/bin (apt, apt-get)."
+chmod 0755 "$APT_SYS_BIN"
+ln -sf "$APT_SYS_BIN" "$APT_GET_SYS_BIN"
+ln -sf "$APT_SYS_BIN" "$APT_LOCAL_BIN"
+ln -sf "$APT_SYS_BIN" "$APT_GET_LOCAL_BIN"
+log_ok "Protective wrappers engaged across /usr/bin and /usr/local/bin."
 
-log_info "Configuring Tier 2 APT Configuration Hook: ${APT_CONF_HOOK}..."
+# Shell profile cache invalidator
+cat > "$PROFILE_HOOK" << 'EOF_PROF'
+hash -d apt apt-get 2>/dev/null || true
+EOF_PROF
+chmod 0644 "$PROFILE_HOOK"
+
+# APT periodic update suppressions
 cat > "$APT_CONF_HOOK" << 'CONF_EOF'
 // AzamLabs Protective Configuration Hook
 // Prevents non-interactive direct invocation of upgrade/autoremove
@@ -174,7 +219,6 @@ APT::Periodic::Unattended-Upgrade "0";
 APT::Periodic::Download-Upgradeable-Packages "0";
 APT::Periodic::AutocleanInterval "0";
 CONF_EOF
-
 chmod 0644 "$APT_CONF_HOOK"
 log_ok "APT configuration hooks and periodic upgrade suppressions applied."
 
@@ -184,6 +228,9 @@ for u in apt-daily.timer apt-daily-upgrade.timer unattended-upgrades.service; do
     systemctl mask "$u" 2>/dev/null || true
 done
 log_ok "Background systemd update timers permanently masked."
+
+# Invalidate bash hash table in current subshell
+hash -d apt apt-get 2>/dev/null || true
 
 echo ""
 echo "============================================================"
@@ -196,4 +243,3 @@ echo "  - 'apt install'    : ALLOWED (Benign package installations permitted)"
 echo "  - Override Switch  : --force-azam-override"
 echo "============================================================"
 exit 0
-

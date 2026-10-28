@@ -5,6 +5,9 @@ __pycache__/
 .venv/
 venv/
 .vscode/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Logs and runtime files
 sync.log

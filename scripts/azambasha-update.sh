@@ -267,6 +267,7 @@ sync_from_github() {
 
     # Refresh global administrative symlinks
     ln -sf /opt/unetlab/scripts/azambasha-update.sh /usr/local/bin/azam-update 2>/dev/null || true
+    ln -sf /opt/unetlab/scripts/azambasha-update.sh /usr/local/bin/azambasha-update 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-quarterly-audit.sh /usr/local/bin/azam-audit 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-menu 2>/dev/null || true
     ln -sf /opt/unetlab/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-fix 2>/dev/null || true

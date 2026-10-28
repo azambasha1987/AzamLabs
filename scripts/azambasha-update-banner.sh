@@ -291,7 +291,7 @@ printf '   %sLab nodes    %s%s running%s (process count, approximate)\n' "$DIM" 
 printf '   %sHardware     %s%s\n' "$DIM" "$RESET" "$HW_ACCEL"
 
 printf '\n%s%s Platform management%s\n' "$BOLD" "$CYAN" "$RESET"
-printf '   %ssudo azambasha-update%s         %sRun official AzamLabs system update & check%s\n' "$GREEN" "$RESET" "$DIM" "$RESET"
+printf '   %ssudo azam-update%s              %sRun official AzamLabs system update & check%s\n' "$GREEN" "$RESET" "$DIM" "$RESET"
 printf '   %sazam-health%s                   %sCheck health of emulators, bridges, and services%s\n' "$GREEN" "$RESET" "$DIM" "$RESET"
 printf '   %sazam-menu%s                     %sOpen interactive platform administration console%s\n' "$GREEN" "$RESET" "$DIM" "$RESET"
 printf '\n'

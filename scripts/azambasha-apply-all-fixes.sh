@@ -275,6 +275,7 @@ case "$CHOICE" in
             fi
             ln -sf "${SCRIPT_DIR}/azambasha-sync-network-config.sh" /usr/local/bin/azam-netcfg 2>/dev/null || true
             ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azam-update 2>/dev/null || true
+        ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azambasha-update 2>/dev/null || true
             ln -sf "${SCRIPT_DIR}/azambasha-quarterly-audit.sh" /usr/local/bin/azam-audit 2>/dev/null || true
             echo ""
             echo "============================================================"
@@ -382,6 +383,7 @@ case "$CHOICE" in
         fi
         ln -sf "${SCRIPT_DIR}/azambasha-sync-network-config.sh" /usr/local/bin/azam-netcfg 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azam-update 2>/dev/null || true
+        ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azambasha-update 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-quarterly-audit.sh" /usr/local/bin/azam-audit 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-optimizer 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-heavy-optimizer 2>/dev/null || true
@@ -505,6 +507,7 @@ case "$CHOICE" in
         fi
         echo ""
         ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azam-update 2>/dev/null || true
+        ln -sf "${SCRIPT_DIR}/azambasha-update.sh" /usr/local/bin/azambasha-update 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-quarterly-audit.sh" /usr/local/bin/azam-audit 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-optimizer 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-heavy-optimizer 2>/dev/null || true

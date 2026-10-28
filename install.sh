@@ -1177,9 +1177,11 @@ ln -sfn /opt/unetlab/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstor
 ln -sfn /opt/unetlab/scripts/azambasha-backup-restore.sh /usr/local/bin/azam-backup 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-dark-theme.sh /usr/local/bin/azam-dark 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-update.sh /usr/local/bin/azam-update 2>/dev/null || true
+ln -sfn /opt/unetlab/scripts/azambasha-update.sh /usr/local/bin/azambasha-update 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-quarterly-audit.sh /usr/local/bin/azam-audit 2>/dev/null || true
 if [ -d "/opt/azambasha/scripts" ]; then
     ln -sfn /opt/azambasha/scripts/azambasha-update.sh /usr/local/bin/azam-update 2>/dev/null || true
+    ln -sfn /opt/azambasha/scripts/azambasha-update.sh /usr/local/bin/azambasha-update 2>/dev/null || true
     ln -sfn /opt/azambasha/scripts/azambasha-quarterly-audit.sh /usr/local/bin/azam-audit 2>/dev/null || true
     ln -sfn /opt/azambasha/scripts/azambasha-bootstorm.py /usr/local/bin/azam-bootstorm 2>/dev/null || true
 fi

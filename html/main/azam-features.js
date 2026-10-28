@@ -95,7 +95,7 @@
       createStatCard('az-m-cpu', 'CPU Load (1m)', '—', 'fa-tachometer', '#818cf8') +
       createStatCard('az-m-nodes', 'Active QEMU Nodes', '—', 'fa-cubes', '#34d399') +
       createStatCard('az-m-watchdog', '24/7 Watchdog', '—', 'fa-shield', '#fbbf24') +
-      createStatCard('az-m-disk', 'Storage (/)', '—', 'fa-hdd-o', '#f472b6') +
+      createStatCard('az-m-disk', 'Storage (/)', '—', 'fa-hdd-o', '#f472b6');
     container.appendChild(statsGrid);
 
     // ── 3. Tab Bar Navigation ─────────────────────────────────
@@ -1171,6 +1171,8 @@
         setTimeout(cleanupOrphanGlowFilters, 100);
       }
     }, true);
+  })();
+
   /* ── Issue #45 & Issue #65 Hardening: User Online/Idle/Offline Status & Log Filters ── */
   (function initUserStatusBadgeHook() {
     var style = document.createElement('style');

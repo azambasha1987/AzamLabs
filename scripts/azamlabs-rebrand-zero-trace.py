@@ -65,8 +65,8 @@ def replace_tokens(text: str, filepath: str) -> tuple[str, int]:
         (r'/usr/share/plymouth/themes/pnetlab', '/usr/share/plymouth/themes/azamlabs', 0),
         (r'/etc/update-motd\.d/\d\d-pnetlab-[a-z]+', '/etc/update-motd.d/10-azamlabs-status', 0),
         (r'/opt/unetlab/scripts/motd/\d\d-pnetlab-[a-z]+', '/opt/unetlab/scripts/motd/10-azamlabs-status', 0),
-        (r'/usr/sbin/pnetlab-update\b', '/usr/local/bin/azambasha-update', 0),
-        (r'\bpnetlab-update\b', 'azambasha-update', 0),
+        (r'/usr/sbin/pnetlab-update\b', '/usr/local/bin/azam-update', 0),
+        (r'\bpnetlab-update\b', 'azam-update', 0),
 
         # Netcfg comments and filenames
         (r'pnetlab-netcfg', 'azamlabs-netcfg', 0),

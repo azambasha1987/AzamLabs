@@ -104,7 +104,7 @@ ln -sf "${SCRIPTS}/azambasha-cpu-governor.py"      /usr/local/bin/azam-cpu-gover
 ln -sf "${SCRIPTS}/azambasha-eve-lab-importer.py"   /usr/local/bin/azam-lab-importer
 chmod +x "${SCRIPTS}/azambasha-eve-lab-importer.py" 2>/dev/null || true
 ln -sf "${SCRIPTS}/azambasha-update.sh"            /usr/local/bin/azam-update
-ln -sf "${SCRIPTS}/azambasha-update.sh"            /usr/local/bin/azambasha-update
+rm -f /usr/local/bin/azambasha-update 2>/dev/null || true
 ln -sf "${SCRIPTS}/azambasha-quarterly-audit.sh"   /usr/local/bin/azam-audit
 ln -sf "${SCRIPTS}/azambasha-apply-all-fixes.sh"    /usr/local/bin/azam-menu
 ln -sf "${SCRIPTS}/azambasha-apply-all-fixes.sh"    /usr/local/bin/azam-fix

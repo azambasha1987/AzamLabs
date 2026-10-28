@@ -19,6 +19,7 @@
 #   sudo bash scripts/azambasha-block-updates.sh --unblock  # Restore update capabilities
 # ==============================================================================
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/opt/unetlab/scripts")"
 
 PNET_PACKAGES=(
     "azamlabs"
@@ -87,6 +88,13 @@ if [[ "${1:-}" =~ ^(--check|--status)$ ]]; then
         echo "INACTIVE"
     fi
 
+    echo -n "[*] Safe APT Guard: "
+    if [ -f "/usr/local/bin/apt" ] && grep -q "BREAK AzamLabs" "/usr/local/bin/apt" 2>/dev/null; then
+        echo "ACTIVE (Blocking upgrade & autoremove)"
+    else
+        echo "INACTIVE"
+    fi
+
     echo -n "[*] Database Offline Mode: "
     if command -v mysql &>/dev/null; then
         DB_MODE=$(mysql -u azamlabs -pazam -N -e "SELECT control_value FROM control WHERE control_name='ctrl_default_mode';" azamlabs_db 2>/dev/null || echo "unknown")
@@ -142,8 +150,15 @@ if [[ "${1:-}" =~ ^(--unblock|--restore|--enable-updates)$ ]]; then
         sed -i "/$HOSTS_MARKER/,/# --- END AZAMLABS UPDATE BLOCKER ---/d" /etc/hosts
     fi
 
-    echo "[6/6] Updating APT cache..."
+    echo "[6/7] Updating APT cache..."
     apt-get update -y 2>/dev/null || true
+
+    echo "[7/7] Disabling Safe APT Guard..."
+    if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
+        bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" --disable 2>/dev/null || true
+    else
+        rm -f /usr/local/bin/apt /usr/local/bin/apt-get /etc/apt/apt.conf.d/99azamlabs-apt-guard 2>/dev/null || true
+    fi
 
     echo "============================================================"
     echo "  [SUCCESS] AzamLabs updates have been restored!             "
@@ -280,12 +295,19 @@ $HOSTS_MARKER
 EOF
 fi
 
+# Step 8: Deploy Safe APT Guard
+echo "[8/8] Deploying Safe APT Guard (protecting against rogue upgrades & autoremove)..."
+if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
+    bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" --enable 2>/dev/null || true
+fi
+
 echo ""
 echo "============================================================"
 echo "    [SUCCESS] Azam Basha Version Successfully Frozen!       "
 echo "============================================================"
 echo "  - APT Package Hold        : ENABLED (All packages locked)"
 echo "  - APT Pin-Priority -1     : ENABLED (/etc/apt/preferences.d)"
+echo "  - Safe APT Guard          : ACTIVE (Blocking upgrade & autoremove)"
 echo "  - CLI Updater Barrier     : LOCKED (/usr/bin/azamlabs-update)"
 echo "  - Systemd Services        : MASKED"
 echo "  - Offline Mode Database   : ENFORCED"

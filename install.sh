@@ -1099,6 +1099,11 @@ fi
 if [ -f "${SCRIPT_DIR}/scripts/azambasha-block-updates.sh" ]; then
     bash "${SCRIPT_DIR}/scripts/azambasha-block-updates.sh" || true
 fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-apt-guard.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-apt-guard.sh" --enable || true
+elif [ -f "/opt/unetlab/scripts/azambasha-apt-guard.sh" ]; then
+    bash "/opt/unetlab/scripts/azambasha-apt-guard.sh" --enable || true
+fi
 if [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-cluster.sh" ]; then
     bash "${SCRIPT_DIR}/scripts/azambasha-fix-cluster.sh" || true
 fi
@@ -1157,6 +1162,7 @@ ln -sfn /opt/unetlab/scripts/azambasha-image-doctor.sh /usr/local/bin/azambasha-
 ln -sfn /opt/unetlab/scripts/azambasha-backup-restore.sh /usr/local/bin/azambasha-backup 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-dark-theme.sh /usr/local/bin/azambasha-dark 2>/dev/null || true
 
+ln -sfn /opt/unetlab/scripts/azambasha-apt-guard.sh /usr/local/bin/azam-apt-guard 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-menu 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-apply-all-fixes.sh /usr/local/bin/azam-fix 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-fix-cluster.sh /usr/local/bin/azam-cluster 2>/dev/null || true

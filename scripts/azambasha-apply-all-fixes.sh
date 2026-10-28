@@ -106,15 +106,16 @@ echo "24) Run 3-Month Quarterly Intelligence Audit & Governance Check (azam-audi
 echo "25) Apply Full SATELLITE Worker Node Optimization Suite"
 echo "26) Reset Web-GUI & Cluster Database Credentials (admin / azam)"
 echo "27) Synchronize Web-GUI Version to Latest Release (v6.8.90)"
-echo "28) Exit"
+echo "28) Deploy & Manage Safe APT Guard (Block upgrade & autoremove)"
+echo "29) Exit"
 echo "============================================================"
 
 # Handle interactive /dev/tty or non-interactive argument/fallback
 if [ -z "${CHOICE:-}" ]; then
-    if [ -n "${1:-}" ] && [[ "$1" =~ ^([1-9]|1[0-9]|2[0-8])$ ]]; then
+    if [ -n "${1:-}" ] && [[ "$1" =~ ^([1-9]|1[0-9]|2[0-9])$ ]]; then
         CHOICE="$1"
     elif [ -e /dev/tty ]; then
-        read -rp "Select an option [1-28, default: 19]: " USER_INPUT < /dev/tty || true
+        read -rp "Select an option [1-29, default: 19]: " USER_INPUT < /dev/tty || true
         CHOICE="${USER_INPUT:-19}"
     else
         CHOICE="19"
@@ -386,6 +387,10 @@ case "$CHOICE" in
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-heavy-optimizer 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-dry-test.py" /usr/local/bin/azam-dry-test 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-health-check.sh" /usr/local/bin/azam-health 2>/dev/null || true
+        ln -sf "${SCRIPT_DIR}/azambasha-apt-guard.sh" /usr/local/bin/azam-apt-guard 2>/dev/null || true
+        if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
+            bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" --enable 2>/dev/null || true
+        fi
         echo ""
         echo "============================================================"
         echo "  [SUCCESS] ALL ESSENTIAL ENHANCEMENTS APPLIED SUCCESSFULLY! "
@@ -524,6 +529,13 @@ case "$CHOICE" in
         fi
         ;;
     28)
+        if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
+            bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" "${2:---enable}"
+        else
+            echo "[!] azambasha-apt-guard.sh not found." >&2
+        fi
+        ;;
+    29)
         echo "Exiting."
         exit 0
         ;;

@@ -900,6 +900,11 @@ fi
 if [ -f "${SCRIPT_DIR}/scripts/azambasha-block-updates.sh" ]; then
     bash "${SCRIPT_DIR}/scripts/azambasha-block-updates.sh" 2>/dev/null || true
 fi
+if [ -f "${SCRIPT_DIR}/scripts/azambasha-apt-guard.sh" ]; then
+    bash "${SCRIPT_DIR}/scripts/azambasha-apt-guard.sh" --enable 2>/dev/null || true
+elif [ -f "/opt/unetlab/scripts/azambasha-apt-guard.sh" ]; then
+    bash "/opt/unetlab/scripts/azambasha-apt-guard.sh" --enable 2>/dev/null || true
+fi
 
 # Authoritative password realignment to "azam" (Issue #33 Remediation)
 echo "root:azam" | chpasswd 2>/dev/null || true

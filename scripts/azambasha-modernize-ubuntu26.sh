@@ -123,6 +123,7 @@ run_or_fetch "azambasha-database-and-system-deep-fix.sh"
 run_or_fetch "azambasha-fix-export-and-apt.sh"
 run_or_fetch "azambasha-disable-logout.sh"
 run_or_fetch "azambasha-block-updates.sh"
+run_or_fetch "azambasha-apt-guard.sh"
 
 # Final Service Verification & Reload
 rm -rf /dev/shm/azamlabs-authfail* /tmp/azamlabs-authfail* 2>/dev/null || true

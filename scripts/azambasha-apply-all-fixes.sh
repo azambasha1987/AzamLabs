@@ -389,6 +389,8 @@ case "$CHOICE" in
         ln -sf "${SCRIPT_DIR}/azambasha-heavy-node-optimizer.sh" /usr/local/bin/azam-heavy-optimizer 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-dry-test.py" /usr/local/bin/azam-dry-test 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-health-check.sh" /usr/local/bin/azam-health 2>/dev/null || true
+        ln -sf "${SCRIPT_DIR}/azambasha-housekeeping.sh" /usr/local/bin/azam-clean 2>/dev/null || true
+        ln -sf "${SCRIPT_DIR}/azambasha-housekeeping.sh" /usr/local/bin/azambasha-clean 2>/dev/null || true
         ln -sf "${SCRIPT_DIR}/azambasha-apt-guard.sh" /usr/local/bin/azam-apt-guard 2>/dev/null || true
         if [ -f "${SCRIPT_DIR}/azambasha-apt-guard.sh" ]; then
             bash "${SCRIPT_DIR}/azambasha-apt-guard.sh" --enable 2>/dev/null || true

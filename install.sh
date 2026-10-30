@@ -1302,6 +1302,8 @@ ln -sfn /opt/unetlab/scripts/azambasha-dark-theme.sh /usr/local/bin/azam-dark 2>
 ln -sfn /opt/unetlab/scripts/azambasha-update.sh /usr/local/bin/azam-update 2>/dev/null || true
 rm -f /usr/local/bin/azambasha-update 2>/dev/null || true
 ln -sfn /opt/unetlab/scripts/azambasha-quarterly-audit.sh /usr/local/bin/azam-audit 2>/dev/null || true
+ln -sfn /opt/unetlab/scripts/azambasha-housekeeping.sh /usr/local/bin/azam-clean 2>/dev/null || true
+ln -sfn /opt/unetlab/scripts/azambasha-housekeeping.sh /usr/local/bin/azambasha-clean 2>/dev/null || true
 if [ -d "/opt/azambasha/scripts" ]; then
     ln -sfn /opt/azambasha/scripts/azambasha-update.sh /usr/local/bin/azam-update 2>/dev/null || true
     rm -f /usr/local/bin/azambasha-update 2>/dev/null || true

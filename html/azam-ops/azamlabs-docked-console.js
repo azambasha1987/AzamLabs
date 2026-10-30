@@ -372,6 +372,7 @@
     toggleSyntax: function() {
       this.syntaxEnabled = !this.syntaxEnabled;
       localStorage.setItem('az_cli_syntax', this.syntaxEnabled ? 'true' : 'false');
+      localStorage.setItem('pnq_wc_highlight', this.syntaxEnabled ? '1' : '0');
       var btn = this.dockEl.querySelector('#az-btn-syntax');
       if (btn) {
         if (this.syntaxEnabled) btn.classList.add('active');
@@ -379,6 +380,13 @@
       }
       if (window.azamCliSyntax) {
         window.azamCliSyntax.setEnabled(this.syntaxEnabled);
+      }
+      // Broadcast to all embedded terminal iframes
+      var iframes = this.dockEl.querySelectorAll('iframe');
+      for (var i = 0; i < iframes.length; i++) {
+        try {
+          iframes[i].contentWindow.postMessage({ type: 'az_syntax_toggle', enabled: this.syntaxEnabled }, '*');
+        } catch (e) {}
       }
     },
 

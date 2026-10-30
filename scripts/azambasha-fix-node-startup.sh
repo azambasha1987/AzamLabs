@@ -416,6 +416,29 @@ try:
         if old_cd in code:
             code = code.replace(old_cd, new_cd)
 
+    # 1. Update modernizeQemuFlags regex to support Ubuntu 26.04 / QEMU 10.2.1
+    if "modernizeQemuFlags" in code:
+        code = code.replace(
+            "preg_replace('/type=pc-[01]\\.\\d+\\b/', 'type=pc', $flags);",
+            "preg_replace('/\\bpc(?:-i440fx)?-[0-4]\\.\\d+\\b/', 'pc', $flags);"
+        )
+        code = code.replace(
+            "preg_replace('/type=pc-q35-[0-4]\\.\\d+\\b/', 'type=q35', $flags);",
+            "preg_replace('/\\bpc-q35-[0-4]\\.\\d+\\b/', 'q35', $flags);"
+        )
+
+    # 2. Inject resolveImage() at start of command()
+    old_cmd_head = 'public function command()\n    {\n        $bin = "";\n        $flags = "";'
+    new_cmd_head = 'public function command()\n    {\n        $bin = "";\n        $flags = "";\n        $this->resolveImage();'
+    if old_cmd_head in code and '$this->resolveImage();' not in code:
+        code = code.replace(old_cmd_head, new_cmd_head, 1)
+
+    # 3. Guard CPU topology so cpus= is always >= 1
+    old_smp_flag = '$flags .= " -smp cpus=" . $this->cpu . ",sockets=1";'
+    new_smp_flag = '$cpuCount = max(1, (int)$this->cpu);\n        $flags .= " -smp cpus=" . $cpuCount . ",sockets=1";'
+    if old_smp_flag in code:
+        code = code.replace(old_smp_flag, new_smp_flag, 1)
+
     with open(dev_qemu, 'w', encoding='utf-8') as f:
         f.write(code)
     print("  [✔] Smart PDF Image Resolver, UEFI SMM, Ultra-KSM mem-merge & Juniper virtioc active in device_qemu.php")
@@ -729,10 +752,114 @@ if os.path.isfile(php_file):
             }
         }
 
-        if (!posix_setuid($uid)) {'''
+        // Privilege retention: iol_wrapper is setuid root (4755) and manages user isolation
+        // without dropping root in the parent PHP unl_wrapper process.
+        /* if (!posix_setuid($uid)) {
+            error_log(
+                date("M d H:i:s ") . "ERROR: " . $GLOBALS["messages"][80036]
+            );
+            return 80036;
+        } */'''
 
     if t_php in php_c:
         php_c = php_c.replace(t_php, r_php)
+        changed_php = True
+
+    # Also neutralize posix_setuid if already in updated format
+    target_posix = '''        if (!posix_setuid($uid)) {
+            error_log(
+                date("M d H:i:s ") . "ERROR: " . $GLOBALS["messages"][80036]
+            );
+            return 80036;
+        }'''
+    repl_posix = '''        // Privilege retention: iol_wrapper is setuid root (4755) and manages user isolation
+        // without dropping root in the parent PHP unl_wrapper process.
+        /* if (!posix_setuid($uid)) {
+            error_log(
+                date("M d H:i:s ") . "ERROR: " . $GLOBALS["messages"][80036]
+            );
+            return 80036;
+        } */'''
+    if target_posix in php_c:
+        php_c = php_c.replace(target_posix, repl_posix)
+        changed_php = True
+
+    # Robust IOL process stop handler to eliminate pgrep self-matching false positives
+    target_kill_sec = '''    private function pnqKillIolProcesses($runningPathPattern)
+    {
+        $cmd =
+            "sudo pgrep -f " .
+            escapeshellarg($runningPathPattern) .
+            " 2>/dev/null";
+        $pids = [];
+        exec($cmd, $pids, $rc);
+        foreach ($pids as $pid) {
+            $pid = (int) trim($pid);
+            if ($pid <= 0) {
+                continue;
+            }
+            // Kill the whole process group first (wrapper + forked IOL
+            // child share it unless the wrapper detached); fall back to
+            // killing the pid directly in case it's not a group leader.
+            exec("sudo kill -9 -- -" . $pid . " 2>/dev/null");
+            exec("sudo kill -9 " . $pid . " 2>/dev/null");
+            error_log(
+                "sudo kill -9 (iol_wrapper/running-path match) " . $pid
+            );
+        }
+    }
+
+    /**
+     * True if any process still has this node's unique running-path pattern
+     * in its cmdline (i.e. the wrapper or its IOL child is still alive).
+     */
+    private function pnqRunningPathIsAlive($runningPathPattern)
+    {
+        $cmd =
+            "sudo pgrep -f " .
+            escapeshellarg($runningPathPattern) .
+            " 2>/dev/null";
+        $pids = [];
+        exec($cmd, $pids, $rc);
+        return count($pids) > 0;
+    }'''
+
+    repl_kill_sec = '''    private function pnqGetIolPids($runningPathPattern)
+    {
+        $myPid = getmypid();
+        $cmd = "pgrep -f " . escapeshellarg($runningPathPattern) . " 2>/dev/null";
+        $pids = [];
+        exec($cmd, $rawPids, $rc);
+        foreach ($rawPids as $p) {
+            $p = (int) trim($p);
+            if ($p <= 0 || $p == $myPid) continue;
+            $cmdline = @file_get_contents("/proc/{$p}/cmdline");
+            if ($cmdline === false) continue;
+            if (strpos($cmdline, 'pgrep') !== false || strpos($cmdline, 'sudo') !== false) continue;
+            if (strpos($cmdline, 'iol_wrapper') !== false || strpos($cmdline, '.bin') !== false || strpos($cmdline, 'i86bi') !== false) {
+                $pids[] = $p;
+            }
+        }
+        return $pids;
+    }
+
+    private function pnqKillIolProcesses($runningPathPattern)
+    {
+        $pids = $this->pnqGetIolPids($runningPathPattern);
+        foreach ($pids as $pid) {
+            exec("kill -9 -- -" . $pid . " 2>/dev/null");
+            exec("kill -9 " . $pid . " 2>/dev/null");
+            error_log("kill -9 (iol_wrapper/running-path match) " . $pid);
+        }
+    }
+
+    private function pnqRunningPathIsAlive($runningPathPattern)
+    {
+        $pids = $this->pnqGetIolPids($runningPathPattern);
+        return count($pids) > 0;
+    }'''
+    if target_kill_sec in php_c:
+        php_c = php_c.replace(target_kill_sec, repl_kill_sec)
         changed_php = True
 
     # Front iol_wrapper with ksm_merge_exec

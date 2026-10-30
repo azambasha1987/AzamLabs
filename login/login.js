@@ -51,8 +51,23 @@
 			return;
 		}
 		setBusy(true);
-		var consolePref = consolePrefEl ? consolePrefEl.value : 'native';
-		var html5 = (consolePref === 'html5') ? 1 : 0;
+		var consolePref = consolePrefEl ? consolePrefEl.value : 'docked';
+		var html5 = (consolePref === 'native') ? 0 : 1;
+		try {
+			if (consolePref === 'docked') {
+				localStorage.setItem('az_console_mode', 'docked');
+				localStorage.setItem('pnq_html5_console', '1');
+				document.cookie = 'pnq_html5_console=1;path=/;max-age=31536000';
+			} else if (consolePref === 'html5') {
+				localStorage.setItem('az_console_mode', 'popup');
+				localStorage.setItem('pnq_html5_console', '1');
+				document.cookie = 'pnq_html5_console=1;path=/;max-age=31536000';
+			} else {
+				localStorage.setItem('az_console_mode', 'native');
+				localStorage.setItem('pnq_html5_console', '0');
+				document.cookie = 'pnq_html5_console=0;path=/;max-age=31536000';
+			}
+		} catch (e) {}
 		fetch('/api/auth', {
 			method: 'POST',
 			credentials: 'same-origin',
@@ -113,6 +128,15 @@
 				if (da) da.hidden = true;
 			}
 		});
+	}
+
+	if (consolePrefEl) {
+		try {
+			var savedMode = localStorage.getItem('az_console_mode');
+			if (savedMode === 'docked' || savedMode === 'popup' || savedMode === 'native') {
+				consolePrefEl.value = (savedMode === 'popup') ? 'html5' : savedMode;
+			}
+		} catch (e) {}
 	}
 
 	if (versionValueEl) {

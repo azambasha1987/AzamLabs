@@ -2340,6 +2340,8 @@
         '<a href="#" data-delay="500" class="pnq-seq-item" style="display:flex;align-items:center;gap:8px;padding:6px 14px;color:#94a3b8;text-decoration:none;"><i class="fa fa-shield" style="color:#10b981;width:14px;"></i> SecureCRT Safe (500ms)</a>' +
         '<a href="#" data-delay="250" class="pnq-seq-item" style="display:flex;align-items:center;gap:8px;padding:6px 14px;color:#94a3b8;text-decoration:none;"><i class="fa fa-bolt" style="color:#f59e0b;width:14px;"></i> Fast (250ms)</a>' +
         '<a href="#" data-delay="200" class="pnq-seq-item" style="display:flex;align-items:center;gap:8px;padding:6px 14px;color:#94a3b8;text-decoration:none;"><i class="fa fa-globe" style="color:#ec4899;width:14px;"></i> HTML5 Web (200ms)</a>' +
+        '<div style="height:1px;background:rgba(255,255,255,0.1);margin:5px 0;"></div>' +
+        '<a href="#" data-engine="docked" class="pnq-seq-item" style="display:flex;align-items:center;gap:8px;padding:6px 14px;color:#38bdf8;font-weight:700;text-decoration:none;"><i class="fa fa-window-maximize" style="color:#38bdf8;width:14px;"></i> Docked Console (In-Canvas)</a>' +
       '</div>';
 
     var mainSeqBtn = seqConsoleWrap.querySelector('#pnq-btn-seq-console');
@@ -2371,14 +2373,48 @@
         dropdownSeq.style.display = 'none';
         var seqMode = item.getAttribute('data-seq');
         var delayVal = item.getAttribute('data-delay');
+        var engineVal = item.getAttribute('data-engine');
         if (seqMode) {
           window.azamSequencedConsole.launch({ mode: seqMode });
         } else if (delayVal) {
           localStorage.setItem('pnq_seq_delay', delayVal);
           azToast('Console stagger delay set to ' + delayVal + 'ms', 'info');
+        } else if (engineVal === 'docked') {
+          localStorage.setItem('az_console_mode', 'docked');
+          localStorage.setItem('pnq_html5_console', '1');
+          document.cookie = 'pnq_html5_console=1;path=/;max-age=31536000';
+          if (window.azamDockedConsole) {
+            window.azamDockedConsole.showDock();
+            if (window.azamDockedConsole.isMinimized) window.azamDockedConsole.toggleMinimize();
+            if (window.azamDockedConsole.sessions.length === 0 && typeof window.pnqOpenWebConsoleAll === 'function') {
+              window.pnqOpenWebConsoleAll();
+            }
+          }
+          azToast('Engine switched to Quantum In-Canvas Docked Console', 'success');
         }
       };
     });
+
+    var dockConsoleBtn = document.createElement('button');
+    dockConsoleBtn.id = 'pnq-btn-docked-console';
+    dockConsoleBtn.type = 'button';
+    dockConsoleBtn.className = 'btn btn-ghost btn-sm';
+    dockConsoleBtn.style.cssText = 'background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.35);color:#38bdf8;font-weight:700;margin-left:6px;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s ease;';
+    dockConsoleBtn.innerHTML = '<i class="fa fa-terminal"></i> <span>Docked Console</span>';
+    dockConsoleBtn.title = 'Open Quantum In-Canvas Docked Terminal Console Drawer';
+    dockConsoleBtn.onclick = function(e) {
+      e.preventDefault();
+      if (window.azamDockedConsole) {
+        if (window.azamDockedConsole.isVisible() && !window.azamDockedConsole.isMinimized) {
+          window.azamDockedConsole.toggleMinimize();
+        } else {
+          window.azamDockedConsole.showDock();
+          if (window.azamDockedConsole.sessions.length === 0 && typeof window.pnqOpenWebConsoleAll === 'function') {
+            window.pnqOpenWebConsoleAll();
+          }
+        }
+      }
+    };
 
     var heatmapBtn = document.createElement('button');
     heatmapBtn.id = 'pnq-btn-heatmap';
@@ -2526,7 +2562,8 @@
       startBtn.parentNode.insertBefore(bootstormBtn, startBtn.nextSibling);
       startBtn.parentNode.insertBefore(consoleFixBtn, bootstormBtn.nextSibling);
       startBtn.parentNode.insertBefore(seqConsoleWrap, consoleFixBtn.nextSibling);
-      startBtn.parentNode.insertBefore(heatmapBtn, seqConsoleWrap.nextSibling);
+      startBtn.parentNode.insertBefore(dockConsoleBtn, seqConsoleWrap.nextSibling);
+      startBtn.parentNode.insertBefore(heatmapBtn, dockConsoleBtn.nextSibling);
       startBtn.parentNode.insertBefore(telemetryBtn, heatmapBtn.nextSibling);
       startBtn.parentNode.insertBefore(checkpointBtn, telemetryBtn.nextSibling);
       startBtn.parentNode.insertBefore(chaosBtn, checkpointBtn.nextSibling);

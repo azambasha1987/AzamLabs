@@ -953,6 +953,42 @@ if os.path.isfile(wc_file):
         wc_c = wc_c.replace(old_wc_open, new_wc_open, 1)
         changed_wc = True
 
+    # Ensure html5Mode recognizes az_console_mode === 'docked'
+    old_h5 = '''  function html5Mode() {
+    try {
+      if (typeof window.HTML5 !== 'undefined') return String(window.HTML5) === '1';'''
+    new_h5 = '''  function html5Mode() {
+    try {
+      if (localStorage.getItem('az_console_mode') === 'docked') return true;
+      if (typeof window.HTML5 !== 'undefined') return String(window.HTML5) === '1';'''
+    if old_h5 in wc_c:
+        wc_c = wc_c.replace(old_h5, new_h5, 1)
+        changed_wc = True
+
+    # Ensure docked console sidebar button click uses isVisible and always shows dock
+    old_dock_guard = '''          if (window.azamDockedConsole.dockEl && window.azamDockedConsole.dockEl.style.display !== \'none\' && !window.azamDockedConsole.isMinimized) {'''
+    new_dock_guard = '''          if (window.azamDockedConsole.isVisible && window.azamDockedConsole.isVisible() && !window.azamDockedConsole.isMinimized) {'''
+    if old_dock_guard in wc_c:
+        wc_c = wc_c.replace(old_dock_guard, new_dock_guard, 1)
+        changed_wc = True
+
+    old_dock_click = '''          } else if (window.azamDockedConsole.sessions.length > 0) {
+            window.azamDockedConsole.showDock();
+            if (window.azamDockedConsole.isMinimized) window.azamDockedConsole.toggleMinimize();
+          } else {
+            openWebConsoleAll();
+          }'''
+    new_dock_click = '''          } else {
+            window.azamDockedConsole.showDock();
+            if (window.azamDockedConsole.isMinimized) window.azamDockedConsole.toggleMinimize();
+            if (window.azamDockedConsole.sessions.length === 0 && typeof openWebConsoleAll === 'function') {
+              openWebConsoleAll();
+            }
+          }'''
+    if old_dock_click in wc_c:
+        wc_c = wc_c.replace(old_dock_click, new_dock_click, 1)
+        changed_wc = True
+
     if changed_wc:
         with open(wc_file, "w", encoding="utf-8") as f:
             f.write(wc_c)

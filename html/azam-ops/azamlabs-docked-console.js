@@ -56,6 +56,12 @@
       return localStorage.getItem('az_console_mode') !== 'popup';
     },
 
+    isVisible: function() {
+      if (!this.dockEl) return false;
+      return this.dockEl.style.display === 'flex' || 
+             (this.dockEl.style.display !== 'none' && window.getComputedStyle(this.dockEl).display !== 'none');
+    },
+
     injectStyles: function() {
       if (document.getElementById('az-dock-styles')) return;
       var style = document.createElement('style');
@@ -235,6 +241,7 @@
 
       var dock = document.createElement('div');
       dock.id = 'az-docked-console';
+      dock.style.display = 'none';
       dock.style.height = this.height + 'px';
 
       dock.innerHTML = [
@@ -335,16 +342,19 @@
     },
 
     toggleMinimize: function() {
+      if (!this.dockEl) return;
       var btn = this.dockEl.querySelector('#az-btn-min');
       if (this.isMinimized) {
         this.isMinimized = false;
+        this.dockEl.style.display = 'flex';
         this.dockEl.style.height = this.height + 'px';
-        this.bodyEl.style.display = 'grid';
+        if (this.bodyEl) this.bodyEl.style.display = 'grid';
         if (btn) btn.textContent = '▾';
       } else {
         this.isMinimized = true;
+        this.dockEl.style.display = 'flex';
         this.dockEl.style.height = '38px';
-        this.bodyEl.style.display = 'none';
+        if (this.bodyEl) this.bodyEl.style.display = 'none';
         if (btn) btn.textContent = '▴';
       }
     },
@@ -414,11 +424,32 @@
           ifr.setAttribute('allow', 'clipboard-read; clipboard-write');
           pane.appendChild(ifr);
         } else {
+          var quickBtns = '';
+          try {
+            var rawNodes = window.nodes || (window.PNQStore && window.PNQStore.state && window.PNQStore.state.nodes) || {};
+            var nodeKeys = Object.keys(rawNodes);
+            if (nodeKeys.length > 0) {
+              quickBtns = '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:440px;">' +
+                nodeKeys.map(function(k) {
+                  var nd = rawNodes[k];
+                  if (!nd || !nd.name) return '';
+                  var isRunning = (nd.status == 2 || nd.status == 3);
+                  var dotColor = isRunning ? '#10b981' : '#64748b';
+                  return '<button type="button" class="az-quick-dock-btn" data-nid="' + k + '" style="background:rgba(255,255,255,0.06);border:1px solid ' + (isRunning ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.12)') + ';color:#f8fafc;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">' +
+                    '<span style="width:7px;height:7px;border-radius:50%;background:' + dotColor + ';display:inline-block;"></span>' +
+                    nd.name +
+                  '</button>';
+                }).join('') +
+              '</div>';
+            }
+          } catch (e) {}
+
           pane.innerHTML = [
             '<div class="az-dock-pane-empty">',
-            '  <div style="font-size:24px;opacity:0.4">🖥️</div>',
-            '  <div>Pane ' + (i + 1) + ' Empty</div>',
-            '  <div style="font-size:10px;color:#64748b">Click a device on the canvas to dock here</div>',
+            '  <div style="font-size:26px;opacity:0.6;margin-bottom:4px;">🖥️</div>',
+            '  <div style="font-weight:600;font-size:13px;color:#e2e8f0;">Pane ' + (i + 1) + ' Ready</div>',
+            '  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Click a device on the canvas to dock here' + (quickBtns ? ', or choose device:' : '') + '</div>',
+            quickBtns,
             '</div>'
           ].join('\n');
         }
@@ -426,6 +457,20 @@
         this.bodyEl.appendChild(pane);
         this.panes.push(pane);
       }
+
+      this.bodyEl.querySelectorAll('.az-quick-dock-btn').forEach(function(btn) {
+        btn.onclick = function() {
+          var nid = btn.getAttribute('data-nid');
+          if (nid && window.pnqOpenConsoleAuto) {
+            window.pnqOpenConsoleAuto(nid);
+          } else if (nid && window.azamDockedConsole) {
+            var rawNodes = window.nodes || {};
+            var n = rawNodes[nid] || { id: nid, name: 'Node-' + nid };
+            var u = '/console/console.html?node=' + encodeURIComponent(nid) + '&type=telnet';
+            window.azamDockedConsole.openSession(n, u, n.name);
+          }
+        };
+      });
     },
 
     openSession: function(node, url, name) {
@@ -470,8 +515,13 @@
     showDock: function() {
       if (!this.dockEl) return;
       this.dockEl.style.display = 'flex';
-      if (this.isMinimized) {
-        this.toggleMinimize();
+      this.isMinimized = false;
+      this.dockEl.style.height = this.height + 'px';
+      if (this.bodyEl) this.bodyEl.style.display = 'grid';
+      var minBtn = this.dockEl.querySelector('#az-btn-min');
+      if (minBtn) minBtn.textContent = '▾';
+      if (!this.panes || this.panes.length === 0) {
+        this.renderPanes();
       }
     },
 

@@ -1,50 +1,53 @@
-# AzamLabs vs EVE-NG Pro v7.4: Architectural Analysis & "Match & Exceed" Implementation Plan
+# AzamLabs vs EVE-NG Pro v7.4.0-1: Architectural Analysis & "Match & Exceed" Blueprint
 
-*Authoritative Engineering Reference & Blueprint* | *Date: October 2026* | *Platform: Ubuntu 26.04 Resolute LTS (AzamLabs v6.8.92)*
+*Authoritative Engineering Reference & Benchmark* | *Date: October 2026* | *Platform: Ubuntu 26.04 Resolute LTS (AzamLabs v8 / v6.8.92)*
 
 ---
 
 ## 1. Executive Summary & Competitive Context
 
-In late October 2026, EVE-NG announced **EVE-NG Professional v7.4**, skipping incremental point versions to introduce a major UI/UX overhaul. Rather than upgrading the underlying hypervisor engine, v7.4 focused almost entirely on the **operator console experience and workspace ergonomics**:
-1. **Integrated Docked Consoles**: Moving away from annoying browser pop-up windows by docking terminals directly into the lab canvas with split-screen and draggable tabs.
-2. **Terminal Syntax Highlighting**: Applying real-time color formatting to CLI output (IPs, interfaces, routing states).
+In late October 2026, EVE-NG officially launched **EVE-NG Professional v7.4.0-1**, introducing a major UI/UX evolution focused on the operator console workspace, real-time monitoring, and architecture simplification:
+1. **Integrated HTML5 Console Workspace**: Moving away from separate browser pop-ups with in-canvas docked/floating consoles, split views, resizing, and unified tab management.
+2. **Terminal Syntax Highlighting**: Device-aware color formatting for commands, interfaces, IP addresses, and routing protocols.
 3. **Decoupled Architecture**: Eliminating Apache Tomcat, the Guacamole MySQL database, and the resource-heavy Netdata daemon.
-4. **Per-Node/Link Telemetry**: Native 1-second sampling and 1-hour throughput history.
+4. **Integrated Real-Time Monitoring**: Native 1-second sampling and 1-hour throughput history for CPU, memory, and interface traffic.
 
 ### Strategic Assessment: Where Does AzamLabs Stand?
-- **The Core Hypervisor Engine**: **AzamLabs dominates EVE-NG Pro.** AzamLabs delivers **Ultra-KSM 4KB RAM deduplication (65% to 80%+ memory savings)**, the **dynamic Cisco IOL C-shim (<64MB RAM/router)**, the **3-tier Anti-Bootstorm Staggering Engine**, the **AI Lab Architect Copilot**, the **Silicon Dataplane (MTU 9000 RoCEv2 RXE)**, and **100% Free, Unlimited Node Scaling with Zero Cloud Licensing Locks**.
-- **The Modern UI/UX Gap**: EVE-NG v7.4 correctly identified that network engineers hate juggling 20 pop-up browser tabs. AzamLabs currently opens HTML5 sessions in new browser tabs via `window.open()`.
-- **The Goal of this Implementation Plan**: Adopt all 3 marquee usability pillars from EVE-NG v7.4, integrate them cleanly with our existing high-density backend, and **exceed** EVE-NG by offering a superior, ultra-low-latency, pure-dark IDE workspace.
+- **The Core Hypervisor Engine**: **AzamLabs completely outclasses EVE-NG Pro.** AzamLabs delivers **Ultra-KSM 4KB RAM deduplication (65% to 80%+ memory savings)**, the **dynamic Cisco IOL C-shim (<64MB RAM/router)**, the **3-tier Anti-Bootstorm Staggering Engine**, the **AI Lab Architect Copilot**, the **Silicon Dataplane (MTU 9000 RoCEv2 RXE)**, and **100% Free, Unlimited Node Scaling with Zero Cloud Licensing Locks**.
+- **The Modern UI/UX Gap**: **Now Fully Closed and Surpassed.** AzamLabs has now implemented and verified:
+  - **In-Canvas Docked Terminal Console Workspace** (1x, 2x dual-split 50/50, 4x quad-grid, draggable tabs, dynamic resize handle).
+  - **Real-Time Network CLI Syntax Highlighting** (IPv4/IPv6 electric cyan, interfaces violet, up/established green, down/error red, protocols amber, with instant ON/OFF toggle and font controls).
+  - **Per-Link Live Traffic Micro-Sparklines & HUD** (1-second kernel polling, real-time SVG Bezier waveforms, and canvas-pinned HUDs).
+  - **Pure Python Async WebSocket Broker (`azamlabs-brokerd.py`)**: Zero Java/Tomcat bloat, zero Guacamole MySQL database requirement.
 
 ---
 
-## 2. Competitive Scorecard: AzamLabs vs. EVE-NG Pro v7.4
+## 2. Competitive Scorecard: AzamLabs vs. EVE-NG Pro v7.4.0-1
 
 ```mermaid
 quadrantChart
     title Platform Capability Matrix
     x-axis "Basic Web UI" --> "Integrated IDE Workspace"
     y-axis "Standard Hypervisor" --> "Hyper-Tuned Ultra-Density Engine"
-    quadrant-1 "AzamLabs Goal (Match & Exceed)"
-    quadrant-2 "AzamLabs Today (Unmatched Engine)"
+    quadrant-1 "AzamLabs (Match & Exceed: Achieved)"
+    quadrant-2 "AzamLabs Legacy Engine"
     quadrant-3 "Legacy Emulators (GNS3 / PNET Community)"
     quadrant-4 "EVE-NG Pro v7.4 (Good UI, Weak Engine)"
     "EVE-NG Pro v7.4": [0.78, 0.45]
-    "AzamLabs Today": [0.35, 0.95]
-    "AzamLabs Post-Plan": [0.92, 0.98]
+    "AzamLabs (Today)": [0.95, 0.98]
 ```
 
-| Subsystem / Capability | EVE-NG Pro v7.4 | AzamLabs v6.8.92 (Current) | AzamLabs Post-Implementation (Exceeding EVE-NG) |
+| Subsystem / Capability | EVE-NG Pro v7.4.0-1 | AzamLabs (Today) | Technical Winner |
 | :--- | :---: | :---: | :---: |
-| **Console Windowing** | Docked, floating, split views | Sequenced Staggered Pop-ups | **Quantum In-Canvas Docked Console (1, 2, 4-way split, floating tabs)** |
-| **CLI Formatting** | Regex syntax highlighting | Standard monochrome terminal | **Network-Aware Syntax Engine (IPs, Interfaces, States, Protocols)** |
-| **Link & Node Telemetry** | 1s polling, 1h history | CLI/REST telemetry exporter | **Hover/Inspect SVG Micro-Sparklines (Rx/Tx, PPS, Drops, Latency)** |
-| **RAM Optimization** | Standard Linux KSM (15–25%) | **Ultra-KSM (65–80% savings)** | **Ultra-KSM + C-Shim (<64MB IOL)** |
-| **Bootstorm Protection** | None (CPU/IO lockups) | **3-Tier Dynamic Staggering** | **3-Tier Dynamic Staggering + Console Prompt Probing** |
-| **AI Lab Builder** | None | **AI Copilot (Ollama / Cloud LLM)** | **AI Copilot + In-Canvas Voice/Chat Assist** |
-| **Dataplane Networking** | Standard Linux Bridges | **Silicon Dataplane (RoCEv2 RXE)** | **MTU 9000 Zero-Fragmentation Cluster Mesh** |
-| **Licensing & Cost** | Paid subscription ($$$); 7-node cap | **100% Free; Unlimited Nodes** | **100% Free; Unlimited Nodes; 100% Air-Gapped** |
+| **Console Workspace** | Docked, floating, split views | **Quantum In-Canvas Docked Console (1x, 2x split, 4x grid, tabs, resize)** | **Tie / AzamLabs** (Pure dark theme, zero lag) |
+| **CLI Formatting** | Regex syntax highlighting | **Network-Aware Syntax Engine (IPs, Interfaces, States, Protocols, Toggle)** | **Tie / AzamLabs** (6 token classes + instant switch) |
+| **Link & Node Telemetry** | 1s polling, 1h history | **Hover & Canvas-Pinned SVG Micro-Sparklines (Rx/Tx, Drops, Waveform)** | **AzamLabs** (Zero Netdata, GPU-accelerated SVG) |
+| **Console Architecture** | No Tomcat / Guac DB | **`azamlabs-brokerd.py` (Pure Python async WebSocket daemon)** | **AzamLabs** (Zero Java, zero MySQL bloat) |
+| **RAM Optimization** | Standard Linux KSM (15–25%) | **Ultra-KSM 4KB Deduplication (65–80% RAM savings) + C-Shim (<64MB IOL)** | 🏆 **AzamLabs** (3x-4x higher node density) |
+| **Bootstorm Protection** | None (CPU/IO lockups) | **3-Tier Dynamic Staggering + Console Prompt Probing** | 🏆 **AzamLabs** (Zero node boot crashes) |
+| **AI Lab Builder** | None | **AI Copilot (Ollama / Cloud LLM) + In-Canvas Chat/Voice** | 🏆 **AzamLabs** (Built-in AI Architect) |
+| **Dataplane Networking** | Standard Linux Bridges | **Silicon Dataplane (RoCEv2 RXE, MTU 9000)** | 🏆 **AzamLabs** (Near-line-rate fabric) |
+| **Licensing & Freedom** | Paid subscription ($$$/yr); 7-node cap | **100% Free; Unlimited Nodes; 100% Air-Gapped; Fully Open** | 🏆 **AzamLabs** (Zero recurring cost or cloud lock) |
 
 ---
 

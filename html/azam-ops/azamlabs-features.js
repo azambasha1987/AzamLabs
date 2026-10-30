@@ -2471,13 +2471,13 @@
     themeDropdown.style.cssText = 'display:none;position:absolute;top:calc(100% + 6px);right:0;width:240px;background:var(--pnq-surface, #0f1117);border:1px solid var(--pnq-border-strong, rgba(255,255,255,0.2));border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,0.7);z-index:999999;padding:6px;backdrop-filter:blur(14px);';
 
     var PALETTES_LIST = [
-      { id: 'dark',        name: 'Obsidian Slate', desc: 'Default Dark',         dot: '#3b82f6', bg: '#0f1117' },
-      { id: 'light',       name: 'Crisp Daylight', desc: 'Modern Daylight Light',dot: '#2563eb', bg: '#ffffff' },
-      { id: 'cyberpunk',   name: 'Cyber Matrix',   desc: 'Cyberpunk Neon Glow',  dot: '#00f2fe', bg: '#040711' },
-      { id: 'nord',        name: 'Nord Arctic',    desc: 'Scandinavian Frost',   dot: '#88c0d0', bg: '#2e3440' },
-      { id: 'midnight',    name: 'Midnight Navy',  desc: 'Enterprise NOC Opera', dot: '#38bdf8', bg: '#0a1530' },
-      { id: 'tokyo-night', name: 'Tokyo Night',    desc: 'Developer Twilight',   dot: '#bb9af7', bg: '#1a1b26' },
-      { id: 'oled',        name: 'Pure OLED',      desc: '100% True Black',      dot: '#00f0ff', bg: '#000000' }
+      { id: 'dark',        name: 'Obsidian Slate', desc: 'Neutral Charcoal Dark', dot: '#3b82f6', bg: '#0a0c10', surface: '#12151e' },
+      { id: 'light',       name: 'Crisp Daylight', desc: 'High-Contrast Daylight',dot: '#2563eb', bg: '#ffffff', surface: '#f8fafc' },
+      { id: 'cyberpunk',   name: 'Cyberpunk Neon', desc: 'Synthwave Violet & Pink',dot: '#00f2fe', bg: '#120726', surface: '#1c0c3b' },
+      { id: 'nord',        name: 'Nord Arctic',    desc: 'Frosted Polar Slate',   dot: '#88c0d0', bg: '#242933', surface: '#2e3440' },
+      { id: 'solarized',   name: 'Solarized NOC',  desc: 'Deep Oceanic Teal',     dot: '#2aa198', bg: '#00212b', surface: '#002b36' },
+      { id: 'dracula',     name: 'Dracula Gothic', desc: 'Dark Plum & Pink',      dot: '#ff79c6', bg: '#1e1f29', surface: '#282a36' },
+      { id: 'matrix',      name: 'Retro Terminal', desc: 'Phosphor Green Matrix', dot: '#00ff66', bg: '#000000', surface: '#001003' }
     ];
 
     PALETTES_LIST.forEach(function(p) {
@@ -2569,13 +2569,13 @@
     var BG_PREF_KEY = 'pnq_bg_pref';
 
     var PALETTES = [
-      { id: 'dark',        name: 'Obsidian Slate', desc: 'Default Dark',          dot: '#3b82f6', bg: '#0f1117' },
-      { id: 'light',       name: 'Crisp Daylight', desc: 'Modern Daylight Light', dot: '#2563eb', bg: '#ffffff' },
-      { id: 'cyberpunk',   name: 'Cyber Matrix',   desc: 'Cyberpunk Neon Glow',   dot: '#00f2fe', bg: '#040711' },
-      { id: 'nord',        name: 'Nord Arctic',    desc: 'Scandinavian Frost',    dot: '#88c0d0', bg: '#2e3440' },
-      { id: 'midnight',    name: 'Midnight Navy',  desc: 'Enterprise NOC Opera',  dot: '#38bdf8', bg: '#0a1530' },
-      { id: 'tokyo-night', name: 'Tokyo Night',    desc: 'Developer Twilight',    dot: '#bb9af7', bg: '#1a1b26' },
-      { id: 'oled',        name: 'Pure OLED',      desc: '100% True Black',       dot: '#00f0ff', bg: '#000000' }
+      { id: 'dark',        name: 'Obsidian Slate', desc: 'Neutral Charcoal Dark', dot: '#3b82f6', bg: '#0a0c10', surface: '#12151e' },
+      { id: 'light',       name: 'Crisp Daylight', desc: 'High-Contrast Daylight',dot: '#2563eb', bg: '#ffffff', surface: '#f8fafc' },
+      { id: 'cyberpunk',   name: 'Cyberpunk Neon', desc: 'Synthwave Violet & Pink',dot: '#00f2fe', bg: '#120726', surface: '#1c0c3b' },
+      { id: 'nord',        name: 'Nord Arctic',    desc: 'Frosted Polar Slate',   dot: '#88c0d0', bg: '#242933', surface: '#2e3440' },
+      { id: 'solarized',   name: 'Solarized NOC',  desc: 'Deep Oceanic Teal',     dot: '#2aa198', bg: '#00212b', surface: '#002b36' },
+      { id: 'dracula',     name: 'Dracula Gothic', desc: 'Dark Plum & Pink',      dot: '#ff79c6', bg: '#1e1f29', surface: '#282a36' },
+      { id: 'matrix',      name: 'Retro Terminal', desc: 'Phosphor Green Matrix', dot: '#00ff66', bg: '#000000', surface: '#001003' }
     ];
 
     var PALETTE_MAP = {};
@@ -2622,21 +2622,37 @@
         } catch (e) {}
       }
 
-      // Realtime CanvasFlow instant styling
+      // Realtime CanvasFlow & Quickbar instant high-impact styling
       try {
         var bgSvg = document.querySelector('svg.svelte-flow__background');
         if (bgSvg) {
-          bgSvg.style.backgroundColor = p.bg;
+          bgSvg.style.backgroundColor = 'transparent';
           var dots = bgSvg.querySelectorAll('.svelte-flow__background-pattern');
           dots.forEach(function(d) {
             d.style.fill = p.dot;
             d.setAttribute('fill', p.dot);
+            d.setAttribute('r', '1.6');
           });
         }
         var flowEl = document.querySelector('.pnq-canvas-flow');
         if (flowEl) flowEl.style.backgroundColor = p.bg;
-        var svelteCont = document.querySelector('.svelte-flow__container');
-        if (svelteCont) svelteCont.style.backgroundColor = p.bg;
+
+        // Unsmother the grid: force inner SvelteFlow containers transparent
+        document.querySelectorAll('.svelte-flow__pane, .svelte-flow__zoom, .svelte-flow__viewport, .svelte-flow__edge-labels').forEach(function(el) {
+          el.style.backgroundColor = 'transparent';
+        });
+
+        var qbar = document.querySelector('[id$="-quickbar"]') || (document.getElementById('pnq-buttons') ? document.getElementById('pnq-buttons').parentElement : null);
+        if (qbar) {
+          qbar.style.backgroundColor = p.surface;
+          qbar.style.borderBottom = '2px solid ' + p.dot;
+        }
+
+        var topbar = document.querySelector('.topbar, header.topbar, .navbar');
+        if (topbar) {
+          topbar.style.backgroundColor = p.surface;
+          topbar.style.borderBottom = '2px solid ' + p.dot;
+        }
       } catch (e) {}
 
       updateAllThemeButtons(theme);

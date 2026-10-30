@@ -2282,7 +2282,7 @@
   /* ── Canvas In-Lab Toolbar Actions ────────────────────────── */
   function injectCanvasToolbarActions() {
     var startBtn = document.querySelector('.action-nodesstart, [data-action="nodesstart"]');
-    if (!startBtn || document.getElementById('pnq-btn-bootstorm')) return;
+    if (!startBtn || (document.getElementById('pnq-btn-bootstorm') && document.getElementById('pnq-btn-theme-toggle'))) return;
 
     var bootstormBtn = document.createElement('button');
     bootstormBtn.id = 'pnq-btn-bootstorm';
@@ -2446,6 +2446,18 @@
       toggleAiDrawer();
     };
 
+    var themeToggleBtn = document.createElement('button');
+    themeToggleBtn.id = 'pnq-btn-theme-toggle';
+    themeToggleBtn.type = 'button';
+    themeToggleBtn.className = 'btn btn-ghost btn-sm';
+    themeToggleBtn.style.cssText = 'border:1px solid rgba(251,191,36,0.3);font-weight:600;margin-left:6px;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s ease;';
+    themeToggleBtn.onclick = function(e) {
+      e.preventDefault();
+      if (window.azamThemeEngine) {
+        window.azamThemeEngine.toggle();
+      }
+    };
+
     if (startBtn.parentNode) {
       startBtn.parentNode.insertBefore(bootstormBtn, startBtn.nextSibling);
       startBtn.parentNode.insertBefore(consoleFixBtn, bootstormBtn.nextSibling);
@@ -2456,6 +2468,10 @@
       startBtn.parentNode.insertBefore(chaosBtn, checkpointBtn.nextSibling);
       startBtn.parentNode.insertBefore(exportBtn, chaosBtn.nextSibling);
       startBtn.parentNode.insertBefore(aiDrawerBtn, exportBtn.nextSibling);
+      startBtn.parentNode.insertBefore(themeToggleBtn, aiDrawerBtn.nextSibling);
+    }
+    if (window.azamThemeEngine) {
+      window.azamThemeEngine.updateButtons();
     }
   }
 
@@ -2482,6 +2498,112 @@
     if (ul) ul.appendChild(li);
   }
 
+  /* ── Universal Theme Engine & Synchronizer ──────────────── */
+  function initThemeEngineAndSwitcher() {
+    var MAIN_THEME_KEY = 'pnq.main.theme';
+    var CANVAS_THEME_KEY = 'pnq.canvasflow.theme';
+    var BG_PREF_KEY = 'pnq_bg_pref';
+
+    function getSavedTheme() {
+      try {
+        var t = localStorage.getItem(MAIN_THEME_KEY) || localStorage.getItem(CANVAS_THEME_KEY) || localStorage.getItem(BG_PREF_KEY);
+        if (t === 'light' || t === 'dark') return t;
+      } catch (e) {}
+      if (document.documentElement && document.documentElement.dataset && (document.documentElement.dataset.theme === 'light' || document.documentElement.dataset.theme === 'dark')) {
+        return document.documentElement.dataset.theme;
+      }
+      if (document.body && document.body.classList.contains('pnq-dark')) return 'dark';
+      return 'dark'; // AzamLabs default
+    }
+
+    function applyTheme(theme, persist) {
+      var isDark = (theme === 'dark');
+      if (document.documentElement) {
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+      if (document.body) {
+        document.body.classList.toggle('pnq-dark', isDark);
+        document.body.classList.toggle('pnq-light', !isDark);
+      }
+      if (persist) {
+        try {
+          localStorage.setItem(MAIN_THEME_KEY, theme);
+          localStorage.setItem(CANVAS_THEME_KEY, theme);
+          localStorage.setItem(BG_PREF_KEY, theme);
+        } catch (e) {}
+      }
+      updateAllThemeButtons(theme);
+    }
+
+    function updateAllThemeButtons(theme) {
+      var isDark = (theme === 'dark');
+      var toggleBtn = document.getElementById('pnq-btn-theme-toggle');
+      if (toggleBtn) {
+        toggleBtn.setAttribute('data-theme', theme);
+        toggleBtn.title = isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme';
+        if (isDark) {
+          toggleBtn.innerHTML = '<i class="fa fa-sun-o" style="color:#fbbf24;font-size:13px;"></i> <span>Light Mode</span>';
+          toggleBtn.style.background = 'rgba(251, 191, 36, 0.12)';
+          toggleBtn.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+          toggleBtn.style.color = '#fbbf24';
+        } else {
+          toggleBtn.innerHTML = '<i class="fa fa-moon-o" style="color:#2563eb;font-size:13px;"></i> <span>Dark Mode</span>';
+          toggleBtn.style.background = 'rgba(37, 99, 235, 0.08)';
+          toggleBtn.style.borderColor = 'rgba(37, 99, 235, 0.25)';
+          toggleBtn.style.color = '#2563eb';
+        }
+      }
+
+      document.querySelectorAll('[data-action="theme"]').forEach(function(b) {
+        var lbl = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        b.title = lbl;
+        b.setAttribute('aria-label', lbl);
+        var i = b.querySelector('.fa');
+        if (i) i.className = 'fa ' + (isDark ? 'fa-sun-o' : 'fa-moon-o');
+      });
+
+      var darkCheckbox = document.getElementById('body_dark_mode');
+      if (darkCheckbox && darkCheckbox.checked !== isDark) {
+        darkCheckbox.checked = isDark;
+      }
+    }
+
+    function toggleTheme() {
+      var current = getSavedTheme();
+      var next = (current === 'dark') ? 'light' : 'dark';
+      var flowToggle = document.querySelector('#pnq-flow-theme a');
+      if (flowToggle) {
+        var flowIsDark = document.body.classList.contains('pnq-dark');
+        if ((next === 'dark' && !flowIsDark) || (next === 'light' && flowIsDark)) {
+          try { flowToggle.click(); } catch (e) {}
+        }
+      }
+      applyTheme(next, true);
+      azToast('Theme: Switched to ' + (next === 'dark' ? 'Dark' : 'Light') + ' Mode', 'info');
+      try {
+        window.dispatchEvent(new CustomEvent('pnq:theme-change', { detail: { theme: next } }));
+      } catch (e) {}
+    }
+
+    window.addEventListener('storage', function(e) {
+      if (e.key === MAIN_THEME_KEY || e.key === CANVAS_THEME_KEY) {
+        if (e.newValue === 'light' || e.newValue === 'dark') {
+          applyTheme(e.newValue, false);
+        }
+      }
+    });
+
+    applyTheme(getSavedTheme(), false);
+
+    window.azamThemeEngine = {
+      getTheme: getSavedTheme,
+      setTheme: function(t) { applyTheme(t, true); },
+      toggle: toggleTheme,
+      updateButtons: function() { updateAllThemeButtons(getSavedTheme()); }
+    };
+  }
+
   /* ── CSS for active tab ──────────────────────────────────── */
   function injectStyles() {
     if (document.getElementById('az-feat-style')) return;
@@ -2504,7 +2626,9 @@
 
   /* ── Init ───────────────────────────────────────────────── */
   injectStyles();
+  initThemeEngineAndSwitcher();
   function startInit() {
+    initThemeEngineAndSwitcher();
     waitForSidebar();
     setInterval(injectCanvasToolbarActions, 1000);
     attachCanvasContextListeners();

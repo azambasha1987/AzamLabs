@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Azam Basha Enterprise Pure Slate & Black Dark Theme Engine
-# Provides a 100% unified, seamless, modern dark design system across all pages:
+# Azam Basha Enterprise Dual Theme System (Pure Dark & Crisp Modern Light)
+# Provides a 100% unified, seamless, modern design system across all pages:
 # Dashboard (/main/), Lab Canvas (/themes/default/), Login (/login/), & Overlays.
+# Supports full runtime toggling between Dark Mode and Light Mode.
 # ==============================================================================
-set -Eeuo pipefail
+set -e
+set -u
+set -o pipefail 2>/dev/null || true
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "[ERROR] This script must be run as root. Please run: sudo bash $0" >&2
@@ -15,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/o
 PARENT_DIR="$(cd "${SCRIPT_DIR}/.." 2>/dev/null && pwd || echo "/opt/azambasha")"
 
 echo "============================================================"
-echo "    Applying Azam Basha Unified Pure Dark Design System     "
+echo "   Applying Azam Basha Unified Dual Theme (Dark & Light)    "
 echo "============================================================"
 
 # Ensure Target CSS Directories exist
@@ -28,16 +31,16 @@ DARK_CSS="/opt/unetlab/html/themes/default/css/azambasha-dark.css"
 
 cat > "$DARK_CSS" << 'EOF'
 /* ==========================================================================
-   Azam Basha Enterprise Unified High-Contrast Dark Theme
-   Seamless obsidian & deep-slate palette with electric blue accents
+   Azam Basha Enterprise Dual Theme System (Pure Dark & Modern Crisp Light)
    ========================================================================== */
 
-/* 1. Universal Design Tokens — Completely overrides all legacy/greenish vars */
+/* --------------------------------------------------------------------------
+   1. DARK THEME TOKENS (Active when data-theme="dark" OR body has .pnq-dark)
+   -------------------------------------------------------------------------- */
 :root,
 :root[data-theme="dark"],
-:root[data-theme="light"],
-html,
-body {
+html[data-theme="dark"],
+body.pnq-dark {
   /* Topbar & Sidebar Chrome */
   --pnq-primary:        #0a0c10 !important;
   --pnq-primary-light:  #181c28 !important;
@@ -45,7 +48,7 @@ body {
   --pnq-on-primary:     #f8fafc !important;
   --pnq-on-primary-dim: #94a3b8 !important;
 
-  /* App Surfaces & Backgrounds (No green/olive tints) */
+  /* App Surfaces & Backgrounds */
   --pnq-bg:             #07080c !important;
   --pnq-surface:        #0f1117 !important;
   --pnq-surface-2:      #151822 !important;
@@ -85,305 +88,516 @@ body {
   color-scheme: dark !important;
 }
 
-/* 2. Global Document Reset */
-html, body {
-  background-color: #07080c !important;
-  color: #f8fafc !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+/* --------------------------------------------------------------------------
+   2. LIGHT THEME TOKENS (Active when data-theme="light" OR body does NOT have .pnq-dark)
+   -------------------------------------------------------------------------- */
+:root[data-theme="light"],
+html[data-theme="light"],
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) {
+  /* Topbar & Sidebar Chrome */
+  --pnq-primary:        #ffffff !important;
+  --pnq-primary-light:  #f1f5f9 !important;
+  --pnq-primary-hover:  #e2e8f0 !important;
+  --pnq-on-primary:     #0f172a !important;
+  --pnq-on-primary-dim: #64748b !important;
+
+  /* App Surfaces & Backgrounds */
+  --pnq-bg:             #f8fafc !important;
+  --pnq-surface:        #ffffff !important;
+  --pnq-surface-2:      #f1f5f9 !important;
+  --pnq-text:           #0f172a !important;
+  --pnq-text-muted:     #64748b !important;
+
+  /* Brand Accents */
+  --pnq-accent:         #2563eb !important;
+  --pnq-accent-hover:   #1d4ed8 !important;
+  --pnq-accent-soft:    rgba(37, 99, 235, 0.10) !important;
+  --pnq-on-accent:      #ffffff !important;
+
+  /* Status Colors */
+  --pnq-danger:         #dc2626 !important;
+  --pnq-danger-soft:    rgba(220, 38, 38, 0.10) !important;
+  --pnq-ok:             #16a34a !important;
+  --pnq-warn:           #d97706 !important;
+
+  /* Crisp Borders & Elevation */
+  --pnq-border:         rgba(0, 0, 0, 0.10) !important;
+  --pnq-border-strong:  rgba(0, 0, 0, 0.18) !important;
+  --pnq-shadow:         0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+
+  /* Media & Canvas Previews */
+  --pnq-folder:         #d97706 !important;
+  --pnq-preview-from:   #f8fafc !important;
+  --pnq-preview-to:     #f1f5f9 !important;
+  --pnq-preview-live-from: #f0fdf4 !important;
+  --pnq-preview-live-to:   #dcfce7 !important;
+  --pnq-overlay-chip:   rgba(255, 255, 255, 0.90) !important;
+  --pnq-card-btn:       rgba(255, 255, 255, 0.92) !important;
+  --pnq-card-btn-hover: #ffffff !important;
+  --pnq-perm-hover:     #f1f5f9 !important;
+  --pnq-hover-veil:     rgba(0, 0, 0, 0.04) !important;
+  --pnq-overlay-veil:   rgba(248, 250, 252, 0.65) !important;
+
+  color-scheme: light !important;
 }
 
-/* 3. Top Navigation Bar */
-.topbar, header.topbar, .navbar, .navbar-default, .navbar-inverse {
+/* --------------------------------------------------------------------------
+   3. SCOPED DARK MODE UI ELEMENTS
+   -------------------------------------------------------------------------- */
+:root[data-theme="dark"] body,
+body.pnq-dark {
+  background-color: #07080c !important;
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] header.topbar,
+:root[data-theme="dark"] .navbar,
+body.pnq-dark .topbar,
+body.pnq-dark header.topbar {
   background-color: #0a0c10 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
 }
-.topbar-brand-text, .navbar-brand {
+
+:root[data-theme="dark"] .topbar-brand-text,
+:root[data-theme="dark"] .navbar-brand,
+body.pnq-dark .topbar-brand-text {
   color: #ffffff !important;
   font-weight: 600 !important;
-  letter-spacing: 0.3px !important;
 }
-.topbar-user {
+
+:root[data-theme="dark"] .topbar-user,
+body.pnq-dark .topbar-user {
   color: #94a3b8 !important;
 }
-.topbar-user span {
+:root[data-theme="dark"] .topbar-user span,
+body.pnq-dark .topbar-user span {
   color: #f1f5f9 !important;
-  font-weight: 500 !important;
 }
-.topbar-logout {
+
+:root[data-theme="dark"] .topbar-logout,
+body.pnq-dark .topbar-logout {
   color: #94a3b8 !important;
   border: 1px solid transparent !important;
-  border-radius: 6px !important;
 }
-.topbar-logout:hover {
+:root[data-theme="dark"] .topbar-logout:hover,
+body.pnq-dark .topbar-logout:hover {
   background-color: #151822 !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* 4. Left Sidebar Navigation */
-.sidebar, nav.sidebar, .main-sidebar, .left-side, #sidebar {
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] nav.sidebar,
+:root[data-theme="dark"] .main-sidebar,
+body.pnq-dark .sidebar {
   background-color: #0a0c10 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
-.nav-item {
+
+:root[data-theme="dark"] .nav-item,
+body.pnq-dark .nav-item {
   color: #94a3b8 !important;
   background-color: transparent !important;
-  border-radius: 6px !important;
-  margin: 1px 0 !important;
-  transition: all 0.15s ease !important;
 }
-.nav-item:hover {
+:root[data-theme="dark"] .nav-item:hover,
+body.pnq-dark .nav-item:hover {
   background-color: #151822 !important;
   color: #ffffff !important;
 }
-.nav-item.active, .nav-item.is-active, .sidebar .active > a {
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item.is-active,
+body.pnq-dark .nav-item.active {
   background-color: #181c28 !important;
   color: #ffffff !important;
-  font-weight: 600 !important;
   box-shadow: inset 3px 0 0 #3b82f6 !important;
-  border-left: none !important;
-}
-.nav-item.active .fa, .nav-item.is-active .fa {
-  color: #3b82f6 !important;
-}
-.sidebar-version {
-  background-color: #10121a !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 6px !important;
-  color: #94a3b8 !important;
-  padding: 8px 10px !important;
-}
-.sidebar-version strong {
-  color: #ffffff !important;
 }
 
-/* 5. Main Content Area & Panels */
-.content, main.content, #view {
+:root[data-theme="dark"] .sidebar-version,
+body.pnq-dark .sidebar-version {
+  background-color: #10121a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .content,
+:root[data-theme="dark"] main.content,
+:root[data-theme="dark"] #view,
+body.pnq-dark #view {
   background-color: #07080c !important;
   color: #f8fafc !important;
 }
-.view-title {
+
+:root[data-theme="dark"] .view-title,
+body.pnq-dark .view-title {
   color: #ffffff !important;
 }
 
-/* Workspace Panels & Split Views (Eliminates green panels) */
-.fm-split__list,
-.fm-split__preview,
-.card,
-.panel,
-.panel-default,
-.box,
-.content-wrapper,
-.dropdown-menu {
+:root[data-theme="dark"] .fm-split__list,
+:root[data-theme="dark"] .fm-split__preview,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .panel-default,
+:root[data-theme="dark"] .box,
+:root[data-theme="dark"] .content-wrapper,
+:root[data-theme="dark"] .dropdown-menu,
+body.pnq-dark .card,
+body.pnq-dark .panel,
+body.pnq-dark .panel-default,
+body.pnq-dark .dropdown-menu {
   background-color: #0f1117 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 8px !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
   color: #f8fafc !important;
 }
 
-/* Preview Stage & Viewport */
-.lab-preview__stage {
+:root[data-theme="dark"] .lab-preview__stage,
+body.pnq-dark .lab-preview__stage {
   background: #0a0c12 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   background-image: radial-gradient(circle, #181c28 1px, transparent 1px) !important;
   background-size: 20px 20px !important;
 }
-.lab-preview__info {
+:root[data-theme="dark"] .lab-preview__info,
+body.pnq-dark .lab-preview__info {
   background-color: #131620 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 6px !important;
-}
-.lab-preview__row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-.lab-preview__row > b {
-  color: #94a3b8 !important;
-}
-.lab-preview__row > span, .lab-preview__row > div {
-  color: #e2e8f0 !important;
-}
-.lab-preview__zoom {
-  background-color: #131620 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-.lab-preview__zoom-stop, .lab-preview__zoom-auto {
-  color: #94a3b8 !important;
-  background-color: transparent !important;
-}
-.lab-preview__zoom-stop:hover, .lab-preview__zoom-auto:hover {
-  background-color: #1a1e2c !important;
-  color: #ffffff !important;
-}
-.lab-preview__zoom-stop.is-active, .lab-preview__zoom-auto.is-active {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  color: #3b82f6 !important;
 }
 
-/* 6. Buttons & Interactive Controls */
-.btn {
+:root[data-theme="dark"] .btn,
+body.pnq-dark .btn {
   background-color: #151822 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #e2e8f0 !important;
-  border-radius: 6px !important;
-  font-weight: 500 !important;
-  transition: all 0.15s ease !important;
 }
-.btn:hover {
+:root[data-theme="dark"] .btn:hover,
+body.pnq-dark .btn:hover {
   background-color: #202434 !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
-.btn:disabled, .btn[disabled] {
-  opacity: 0.4 !important;
-  background-color: #11131a !important;
-  color: #64748b !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-.btn-primary, .btn-accent {
-  background-color: #2563eb !important;
-  border-color: #3b82f6 !important;
-  color: #ffffff !important;
-}
-.btn-primary:hover, .btn-accent:hover {
-  background-color: #1d4ed8 !important;
-  border-color: #2563eb !important;
-  box-shadow: 0 0 12px rgba(37, 99, 235, 0.4) !important;
-}
-.btn-danger {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  border-color: rgba(239, 68, 68, 0.35) !important;
-  color: #ef4444 !important;
-}
-.btn-danger:hover {
-  background-color: #ef4444 !important;
-  color: #ffffff !important;
-}
-.btn-ghost {
-  background-color: transparent !important;
-  border-color: transparent !important;
-  color: #94a3b8 !important;
-}
-.btn-ghost:hover {
-  background-color: #151822 !important;
-  color: #ffffff !important;
-}
 
-/* 7. Forms, Inputs, Search Bars */
-.input, select.input, textarea.input, input[type="text"], input[type="password"], input[type="search"], select, textarea, .form-control {
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .form-control,
+body.pnq-dark input,
+body.pnq-dark select,
+body.pnq-dark textarea,
+body.pnq-dark .form-control {
   background-color: #131620 !important;
   color: #f8fafc !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 6px !important;
-}
-.input:focus, select.input:focus, textarea.input:focus, input:focus, select:focus, textarea:focus, .form-control:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
-  outline: none !important;
-}
-.input::placeholder, input::placeholder {
-  color: #64748b !important;
 }
 
-/* 8. Tables & Lists */
-.table, .fm-table, table {
+:root[data-theme="dark"] .table,
+:root[data-theme="dark"] .fm-table,
+:root[data-theme="dark"] table,
+body.pnq-dark .table,
+body.pnq-dark table {
   background-color: #0f1117 !important;
   color: #f8fafc !important;
 }
-.table th, .fm-table th, table th {
+:root[data-theme="dark"] .table th,
+body.pnq-dark .table th {
   background-color: #131620 !important;
   color: #94a3b8 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  font-weight: 600 !important;
 }
-.table td, .fm-table td, table td {
+:root[data-theme="dark"] .table td,
+body.pnq-dark .table td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
   color: #e2e8f0 !important;
 }
-.table tbody tr:hover, .fm-table tbody tr:hover, table tbody tr:hover {
+:root[data-theme="dark"] .table tbody tr:hover,
+body.pnq-dark .table tbody tr:hover {
   background-color: #151822 !important;
 }
-.fm-row.is-selected, .fm-table tbody tr.fm-row.is-selected > td {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-}
-.fm-table tbody tr.fm-row.is-selected > td:first-child {
-  box-shadow: inset 3px 0 0 #3b82f6 !important;
-}
-.fm-name {
-  color: #f1f5f9 !important;
-}
-.fm-name:hover {
-  color: #3b82f6 !important;
-}
-.fm-name .fa-folder, .fm-name .fa-folder-open-o {
-  color: #fbbf24 !important;
-}
-.fm-name .fa-file-o, .fm-name .fa-flask {
-  color: #3b82f6 !important;
-}
 
-/* 9. Empty States & Breadcrumbs */
-.empty {
-  color: #64748b !important;
-}
-.empty .fa {
-  color: #475569 !important;
-}
-.crumb {
-  color: #3b82f6 !important;
-}
-.crumb:hover {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-}
-.crumb.is-current {
-  color: #f8fafc !important;
-}
-
-/* 10. Topology Lab Canvas & Workbench View */
-#lab-viewport, #viewport, .canvas, .topology-canvas, #topology-body, .workspace {
+body.pnq-dark #lab-viewport,
+body.pnq-dark #viewport,
+body.pnq-dark .canvas,
+body.pnq-dark .topology-canvas,
+body.pnq-dark #topology-body {
   background-color: #07080c !important;
   background-image: radial-gradient(circle, #1a1e2c 1px, transparent 1px) !important;
   background-size: 24px 24px !important;
 }
-.pnq-quickbar, #azamlabs-quickbar {
-  background-color: #0a0c10 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
-}
-.pnq-quickbar .pnq-btn {
-  background-color: #131620 !important;
-  color: #e2e8f0 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-.pnq-quickbar .pnq-btn:hover {
-  background-color: #202434 !important;
-  color: #ffffff !important;
-}
 
-/* 11. Modals & Dialogs */
-.modal-backdrop {
-  background: rgba(4, 5, 8, 0.8) !important;
-  backdrop-filter: blur(4px) !important;
-}
-.modal, .modal-content {
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .modal-content,
+body.pnq-dark .modal,
+body.pnq-dark .modal-content {
   background-color: #0f1117 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
   color: #f8fafc !important;
 }
-.modal-head, .modal-header {
+:root[data-theme="dark"] .modal-head,
+:root[data-theme="dark"] .modal-header,
+body.pnq-dark .modal-header {
   background-color: #131620 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
 }
-.modal-foot, .modal-footer {
+:root[data-theme="dark"] .modal-foot,
+:root[data-theme="dark"] .modal-footer,
+body.pnq-dark .modal-footer {
   background-color: #131620 !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* 12. Login Screen Unified Styling */
+/* --------------------------------------------------------------------------
+   4. SCOPED LIGHT MODE UI ELEMENTS
+   -------------------------------------------------------------------------- */
+:root[data-theme="light"] body,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .topbar,
+:root[data-theme="light"] header.topbar,
+:root[data-theme="light"] .navbar,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topbar,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) header.topbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+:root[data-theme="light"] .topbar-brand-text,
+:root[data-theme="light"] .navbar-brand,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topbar-brand-text {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+:root[data-theme="light"] .topbar-user,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topbar-user {
+  color: #64748b !important;
+}
+:root[data-theme="light"] .topbar-user span,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topbar-user span {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .topbar-logout,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topbar-logout {
+  color: #64748b !important;
+  border: 1px solid transparent !important;
+}
+:root[data-theme="light"] .topbar-logout:hover,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topbar-logout:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+:root[data-theme="light"] .sidebar,
+:root[data-theme="light"] nav.sidebar,
+:root[data-theme="light"] .main-sidebar,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .sidebar {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+:root[data-theme="light"] .nav-item,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .nav-item {
+  color: #64748b !important;
+  background-color: transparent !important;
+}
+:root[data-theme="light"] .nav-item:hover,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .nav-item:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+:root[data-theme="light"] .nav-item.active,
+:root[data-theme="light"] .nav-item.is-active,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .nav-item.active {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  box-shadow: inset 3px 0 0 #2563eb !important;
+}
+
+:root[data-theme="light"] .sidebar-version,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .sidebar-version {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .content,
+:root[data-theme="light"] main.content,
+:root[data-theme="light"] #view,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) #view {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .view-title,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .view-title {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .fm-split__list,
+:root[data-theme="light"] .fm-split__preview,
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .panel-default,
+:root[data-theme="light"] .box,
+:root[data-theme="light"] .content-wrapper,
+:root[data-theme="light"] .dropdown-menu,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .card,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .panel,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .panel-default,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .dropdown-menu {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .lab-preview__stage,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .lab-preview__stage {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+:root[data-theme="light"] .lab-preview__info,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .lab-preview__info {
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+:root[data-theme="light"] .btn,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .btn {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+}
+:root[data-theme="light"] .btn:hover,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] input,
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] .form-control,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) input,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) select,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) textarea,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .form-control {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root[data-theme="light"] .table,
+:root[data-theme="light"] .fm-table,
+:root[data-theme="light"] table,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .table,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) table {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+:root[data-theme="light"] .table th,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+:root[data-theme="light"] .table td,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .table td {
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #1e293b !important;
+}
+:root[data-theme="light"] .table tbody tr:hover,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) #lab-viewport,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) #viewport,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .canvas,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .topology-canvas,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) #topology-body {
+  background-color: #ffffff !important;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+:root[data-theme="light"] .modal,
+:root[data-theme="light"] .modal-content,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .modal,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .modal-content {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+:root[data-theme="light"] .modal-head,
+:root[data-theme="light"] .modal-header,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .modal-header {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+:root[data-theme="light"] .modal-foot,
+:root[data-theme="light"] .modal-footer,
+body.pnq-light,
+html:not([data-theme="dark"]) body:not(.pnq-dark) .modal-footer {
+  background-color: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. UNIFIED LOGIN & BRANDING
+   -------------------------------------------------------------------------- */
 .login-wrap {
   background-color: #07080c !important;
 }
@@ -425,7 +639,7 @@ for html_file in \
         else
             echo "$INJECT_TAG" >> "$html_file"
         fi
-        echo "  [✔] Unified dark theme injected into $html_file"
+        echo "  [✔] Unified dual theme injected into $html_file"
     fi
 done
 
@@ -445,5 +659,5 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 echo "============================================================"
-echo "  [SUCCESS] Azam Basha Unified Dark Theme Applied Globally! "
+echo "  [SUCCESS] Azam Basha Dual Theme (Dark & Light) Applied!  "
 echo "============================================================"

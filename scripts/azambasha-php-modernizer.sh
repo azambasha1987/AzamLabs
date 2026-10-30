@@ -94,6 +94,62 @@ if [ -f "$FUNCS_PHP" ]; then
     sed -i 's/"secure" *=> *true/"secure" => (!empty($_SERVER["HTTPS"]) \&\& $_SERVER["HTTPS"] !== "off")/g' "$FUNCS_PHP" 2>/dev/null || true
     sed -i 's/"samesite" *=> *"Strict"/"samesite" => "Lax"/g' "$FUNCS_PHP" 2>/dev/null || true
     echo "      -> Modernized session cookie attributes in functions.php"
+
+    # Harden unlockFile and unlockSession against Slim ErrorException on missing/race lock files
+    python3 - << 'PYFUNCEOF' 2>/dev/null || true
+fpath = "/opt/unetlab/html/includes/functions.php"
+try:
+    with open(fpath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    old_unlock_file = """function unlockFile($file)
+{
+    if (is_file($file . ".lock")) {
+        return unlink($file . ".lock");
+    }
+    return true;
+}"""
+
+    new_unlock_file = """function unlockFile($file)
+{
+    $lock = $file . ".lock";
+    if (file_exists($lock)) {
+        @unlink($lock);
+        clearstatcache(true, $lock);
+    }
+    return true;
+}"""
+
+    old_unlock_session = """function unlockSession($labSession)
+{
+    $file = BASE_LAB . "/" . $labSession . ".lock";
+    if (is_file($file)) {
+        return unlink($file);
+    }
+    return true;
+}"""
+
+    new_unlock_session = """function unlockSession($labSession)
+{
+    $file = BASE_LAB . "/" . $labSession . ".lock";
+    if (file_exists($file)) {
+        @unlink($file);
+        clearstatcache(true, $file);
+    }
+    return true;
+}"""
+
+    if old_unlock_file in content:
+        content = content.replace(old_unlock_file, new_unlock_file)
+    if old_unlock_session in content:
+        content = content.replace(old_unlock_session, new_unlock_session)
+
+    with open(fpath, "w", encoding="utf-8") as f:
+        f.write(content)
+    print("      -> Hardened unlockFile and unlockSession with @unlink and clearstatcache")
+except Exception as e:
+    print(f"      -> Note on functions.php lock patch: {e}")
+PYFUNCEOF
 fi
 
 # 3.5 Harden Lab Node Instantiation & Eliminate XPath Loop Overhead in __lab.php

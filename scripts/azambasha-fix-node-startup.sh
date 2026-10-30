@@ -416,7 +416,7 @@ try:
         if old_cd in code:
             code = code.replace(old_cd, new_cd)
 
-    # 1. Update modernizeQemuFlags regex to support Ubuntu 26.04 / QEMU 10.2.1
+    # 1. Update modernizeQemuFlags regex to support Ubuntu 26.04 / QEMU 10.2.1 and IOSv i440fx (pc) machine type
     if "modernizeQemuFlags" in code:
         code = code.replace(
             "preg_replace('/type=pc-[01]\\.\\d+\\b/', 'type=pc', $flags);",
@@ -426,6 +426,14 @@ try:
             "preg_replace('/type=pc-q35-[0-4]\\.\\d+\\b/', 'type=q35', $flags);",
             "preg_replace('/\\bpc-q35-[0-4]\\.\\d+\\b/', 'q35', $flags);"
         )
+        if "['vios', 'viosl2']" not in code:
+            vios_patch = """
+        // Cisco IOSv / IOSvL2 requires i440fx (pc) machine type for PCI virtio-net detection
+        if (in_array($this->template, ['vios', 'viosl2'], true)) {
+            $flags = preg_replace('/\\b(?:pc-)?q35(?:-[0-9.]+)?\\b/', 'pc', $flags);
+        }
+"""
+            code = code.replace("private function modernizeQemuFlags($flags)\n    {", "private function modernizeQemuFlags($flags)\n    {" + vios_patch)
 
     # 2. Inject resolveImage() at start of command()
     old_cmd_head = 'public function command()\n    {\n        $bin = "";\n        $flags = "";'
@@ -674,18 +682,16 @@ import hashlib, os, struct, socket
 try:
     hostname = socket.gethostname()
     hostid_str = os.popen('hostid').read().strip()
-    if not hostid_str:
-        hostid_str = "00000000"
-    hostid = int(hostid_str, 16) & 0xFFFFFFFF
+    hostid = int(hostid_str, 16) if hostid_str else 0
     
-    pad1 = b'\x4b\x58\x21\x81\x56\x7b\x0d\x91\xdf\x24\x08\xf8\x5c\x9b\x74\xf2'
-    pad2 = b'\x80' + b'\x00'*39
-    
-    m = hashlib.md5()
-    m.update(struct.pack('!I', hostid))
-    m.update(pad1)
-    m.update(pad2)
-    key = m.hexdigest()[:16]
+    ioukey = hostid
+    for ch in hostname:
+        ioukey += ord(ch)
+        
+    iou_pad1 = b'\x4B\x58\x21\x81\x56\x7B\x0D\xF3\x21\x43\x9B\x7E\xAC\x1D\xE6\x8A'
+    iou_pad2 = b'\x80' + 39 * b'\x00'
+    md5input = iou_pad1 + iou_pad2 + struct.pack('!L', ioukey) + iou_pad1
+    key = hashlib.md5(md5input).hexdigest()[:16]
     
     iourc_content = f"[license]\n{hostname} = {key};\n"
     
@@ -703,7 +709,12 @@ try:
             os.chmod(p, 0o644)
         except Exception:
             pass
-    print(f"  [✔] IOU license generated for '{hostname}' (key: {key})")
+    if os.path.isdir("/opt/unetlab/addons/iol/bin"):
+        try:
+            os.symlink("/opt/unetlab/addons/iol/bin/iourc", "/opt/unetlab/addons/iol/bin/.iourc")
+        except Exception:
+            pass
+    print(f"  [✔] Canonical Cisco IOU/IOL license generated for '{hostname}' (key: {key})")
 except Exception as e:
     print(f"  [!] IOU keygen note: {e}")
 PYEOF
@@ -711,6 +722,9 @@ PYEOF
 # Ensure all Cisco IOL binaries are executable
 chmod 0755 /opt/unetlab/addons/iol/bin/* 2>/dev/null || true
 chmod 0644 /opt/unetlab/addons/iol/bin/iourc* 2>/dev/null || true
+ln -sf /opt/unetlab/addons/iol/bin/iourc /opt/unetlab/addons/iol/bin/.iourc 2>/dev/null || true
+ln -sf /opt/unetlab/addons/iol/bin/iourc /etc/iourc 2>/dev/null || true
+ln -sf /opt/unetlab/addons/iol/bin/iourc /root/.iourc 2>/dev/null || true
 
 # --- 6.5. Patch Core IOL Engine & Wrapper Permissions ---
 echo "[6.5/7] Patching IOL engine, Ultra-KSM deduplication & CPU governor shim..."

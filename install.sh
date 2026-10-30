@@ -1008,24 +1008,38 @@ echo "[7/8] Scaffolding addon directories and generating Cisco IOL license..."
 mkdir -p /opt/unetlab/addons/qemu /opt/unetlab/addons/iol/bin /opt/unetlab/addons/dynamips
 mkdir -p /opt/unetlab/labs /opt/unetlab/tmp
 
-# Generate offline Cisco IOL license (iourc)
+# Generate offline Cisco IOL license (iourc) using canonical Cisco IOU MD5 algorithm
+if [ -f "${SCRIPT_DIR}/scripts/CiscoIOUKeygen3.py" ]; then
+    cp -f "${SCRIPT_DIR}/scripts/CiscoIOUKeygen3.py" /opt/unetlab/addons/iol/bin/CiscoIOUKeygen3.py 2>/dev/null || true
+    chmod 0755 /opt/unetlab/addons/iol/bin/CiscoIOUKeygen3.py 2>/dev/null || true
+fi
+
 python3 - << 'PYEOF' 2>/dev/null || true
-import socket, struct, os
+import os, sys, socket, hashlib, struct
 hostname = socket.gethostname()
 try:
     hostid = int(os.popen('hostid').read().strip(), 16)
 except Exception:
     hostid = 0
-key = 0
-for char in hostname:
-    key = (key * 33 + ord(char)) & 0xFFFFFFFF
-key = (key ^ hostid ^ 0x5a5a5a5a) & 0xFFFFFFFF
-license_str = f"[license]\n{hostname} = {key:016x};\n"
-for path in ["/opt/unetlab/addons/iol/bin/iourc", "/etc/iourc"]:
+ioukey = hostid
+for ch in hostname:
+    ioukey += ord(ch)
+iou_pad1 = b'\x4B\x58\x21\x81\x56\x7B\x0D\xF3\x21\x43\x9B\x7E\xAC\x1D\xE6\x8A'
+iou_pad2 = b'\x80' + 39 * b'\x00'
+md5input = iou_pad1 + iou_pad2 + struct.pack('!L', ioukey) + iou_pad1
+license_key = hashlib.md5(md5input).hexdigest()[:16]
+license_str = f"[license]\n{hostname} = {license_key};\n"
+for path in ["/opt/unetlab/addons/iol/bin/iourc", "/etc/iourc", "/opt/unetlab/data/iourc", "/root/.iourc"]:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write(license_str)
     os.chmod(path, 0o644)
+if os.path.isdir("/opt/unetlab/addons/iol/bin"):
+    try:
+        os.symlink("/opt/unetlab/addons/iol/bin/iourc", "/opt/unetlab/addons/iol/bin/.iourc")
+    except Exception:
+        pass
+print(f"Generated canonical Cisco IOL license for {hostname} (key: {license_key})")
 PYEOF
 
 if [ -x /opt/unetlab/wrappers/unl_wrapper ]; then
@@ -1035,6 +1049,34 @@ fi
 # Ensure wrappers retain SUID permissions and socket directories are accessible
 chmod 4755 /opt/unetlab/wrappers/iol_wrapper 2>/dev/null || true
 chmod 777 /tmp/netio* 2>/dev/null || true
+
+# Patch unl_wrapper so fixpermissions permanently retains iol_wrapper SUID & netio permissions
+if [ -f /opt/unetlab/wrappers/unl_wrapper ] && ! grep -q 'chmod 4755 /opt/unetlab/wrappers/iol_wrapper' /opt/unetlab/wrappers/unl_wrapper; then
+    sed -i '/wrappers\/\*_wrapper\*/a \t\t$cmd = '\''/bin/chmod 4755 /opt/unetlab/wrappers/iol_wrapper > /dev/null 2>&1'\'';\n\t\texec($cmd, $o, $rc);\n\t\t$cmd = '\''/bin/chmod 777 /tmp/netio* > /dev/null 2>&1'\'';\n\t\texec($cmd, $o, $rc);' /opt/unetlab/wrappers/unl_wrapper 2>/dev/null || true
+fi
+
+# Patch device_qemu.php for Cisco IOSv / IOSvL2 i440fx (pc) machine type compatibility
+if [ -f /opt/unetlab/html/devices/qemu/device_qemu.php ]; then
+    python3 - << 'PY_QEMU_VIOS' 2>/dev/null || true
+dev_qemu = "/opt/unetlab/html/devices/qemu/device_qemu.php"
+try:
+    with open(dev_qemu, 'r', encoding='utf-8') as f:
+        code = f.read()
+    if "modernizeQemuFlags" in code and "['vios', 'viosl2']" not in code:
+        vios_patch = """
+        // Cisco IOSv / IOSvL2 requires i440fx (pc) machine type for PCI virtio-net detection
+        if (in_array($this->template, ['vios', 'viosl2'], true)) {
+            $flags = preg_replace('/\\b(?:pc-)?q35(?:-[0-9.]+)?\\b/', 'pc', $flags);
+        }
+"""
+        code = code.replace("private function modernizeQemuFlags($flags)\n    {", "private function modernizeQemuFlags($flags)\n    {" + vios_patch)
+        with open(dev_qemu, 'w', encoding='utf-8') as f:
+            f.write(code)
+        print("Patched device_qemu.php for IOSv/IOSvL2 machine type pc")
+except Exception as e:
+    pass
+PY_QEMU_VIOS
+fi
 
 # Systemd tmpfiles rule for IOL AF_UNIX socket directories
 mkdir -p /etc/tmpfiles.d

@@ -130,31 +130,28 @@ mkdir -p "$IOL_BIN" /root
 if [ ! -f "$IOL_BIN/iourc" ]; then
     echo "  -> Generating fresh Cisco IOL license (iourc)..."
     python3 - <<'PY_KEYGEN' 2>/dev/null || true
-import os, socket, struct
+import os, socket, struct, hashlib
 
 hostname = socket.gethostname()
 try:
     hostid_hex = os.popen('hostid').read().strip()
-    hostid = int(hostid_hex, 16)
+    hostid = int(hostid_hex, 16) if hostid_hex else 0
 except Exception:
     hostid = 0
 
-ioukey = int(hostid)
+ioukey = hostid
 for x in hostname:
     ioukey += ord(x)
 
-key1 = (ioukey ^ 0x5a5a5a5a) & 0xffffffff
-key2 = (ioukey ^ 0xa5a5a5a5) & 0xffffffff
+iou_pad1 = b'\x4B\x58\x21\x81\x56\x7B\x0D\xF3\x21\x43\x9B\x7E\xAC\x1D\xE6\x8A'
+iou_pad2 = b'\x80' + 39 * b'\x00'
+md5input = iou_pad1 + iou_pad2 + struct.pack('!L', ioukey) + iou_pad1
+license_key = hashlib.md5(md5input).hexdigest()[:16]
 
-import hashlib
-md5_1 = hashlib.md5(struct.pack('!I', key1)).hexdigest()
-md5_2 = hashlib.md5(struct.pack('!I', key2)).hexdigest()
-license_str = (md5_1[:8] + md5_2[:8]).lower()
-
-content = f"[license]\n{hostname} = {license_str};\n"
+content = f"[license]\n{hostname} = {license_key};\n"
 with open('/opt/unetlab/addons/iol/bin/iourc', 'w') as f:
     f.write(content)
-print(f"     Created iourc for host '{hostname}' with key: {license_str}")
+print(f"     Created canonical iourc for host '{hostname}' with key: {license_key}")
 PY_KEYGEN
 fi
 

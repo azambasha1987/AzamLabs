@@ -298,16 +298,16 @@ class NodeTestSuite:
         try:
             hostname = socket.gethostname()
             hostid_str = os.popen("hostid").read().strip()
-            hostid = int(hostid_str, 16) & 0xFFFFFFFF if hostid_str else 0
-            pad1 = b'\x4b\x58\x21\x81\x56\x7b\x0d\x91\xdf\x24\x08\xf8\x5c\x9b\x74\xf2'
-            pad2 = b'\x80' + b'\x00'*39
-            m = hashlib.md5()
-            m.update(struct.pack('!I', hostid))
-            m.update(pad1)
-            m.update(pad2)
-            key = m.hexdigest()[:16]
+            hostid = int(hostid_str, 16) if hostid_str else 0
+            ioukey = hostid
+            for ch in hostname:
+                ioukey += ord(ch)
+            iou_pad1 = b'\x4B\x58\x21\x81\x56\x7B\x0D\xF3\x21\x43\x9B\x7E\xAC\x1D\xE6\x8A'
+            iou_pad2 = b'\x80' + 39 * b'\x00'
+            md5input = iou_pad1 + iou_pad2 + struct.pack('!L', ioukey) + iou_pad1
+            key = hashlib.md5(md5input).hexdigest()[:16]
             content = f"[license]\n{hostname} = {key};\n"
-            for p in ["/opt/unetlab/addons/iol/bin/iourc", "/etc/iourc", "/opt/unetlab/data/iourc"]:
+            for p in ["/opt/unetlab/addons/iol/bin/iourc", "/etc/iourc", "/opt/unetlab/data/iourc", "/root/.iourc"]:
                 os.makedirs(os.path.dirname(p), exist_ok=True)
                 with open(p, "w") as f:
                     f.write(content)

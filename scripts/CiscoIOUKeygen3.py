@@ -44,3 +44,4 @@ if __name__ == "__main__":
         except OSError as exc:
             sys.stderr.write(f"ERROR: could not write {iourc_path}: {exc}\n")
             sys.exit(1)
+

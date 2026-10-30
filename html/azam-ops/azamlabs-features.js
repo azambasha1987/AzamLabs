@@ -858,7 +858,9 @@
     var hideTimeout = null;
 
     function attachLinkListeners() {
-      var links = document.querySelectorAll('svg path.link, svg path[data-link], svg g.jtk-connector path, .jtk-connector');
+      var links = document.querySelectorAll(
+        '.svelte-flow__edge, .svelte-flow__edge-path, .svelte-flow__edge-interaction, [data-id^="net"], svg path.link, svg path[data-link], svg g.jtk-connector path, .jtk-connector'
+      );
       links.forEach(function(l) {
         if (l.getAttribute('data-az-spark-bound')) return;
         l.setAttribute('data-az-spark-bound', '1');
@@ -867,7 +869,14 @@
           if (!sparklinesActive) return;
           if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
 
-          var iface = l.getAttribute('data-iface') || l.getAttribute('data-link') || 'vunl0_1_1';
+          var edgeEl = l.closest('.svelte-flow__edge') || l;
+          var did = edgeEl.getAttribute('data-id') || l.getAttribute('data-id') || '';
+          var netMatch = did.match(/net(\d+)/);
+          var iface = l.getAttribute('data-iface') || l.getAttribute('data-link');
+          if (!iface && netMatch) {
+            iface = 'vnet1_' + netMatch[1];
+          }
+          if (!iface) iface = did || 'vunl1_1';
           currentSparkIface = iface;
           fetchSparkline(iface, e.clientX, e.clientY);
         });

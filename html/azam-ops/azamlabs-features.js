@@ -723,6 +723,245 @@
     });
   };
 
+  /* ── Floating Traffic Filters Panel & Luminous Topology Path Glow ── */
+  var AzamTrafficFilters = {
+    widgetEl: null,
+    isOpen: false,
+    pollTimer: null,
+    filters: [
+      { id: 'icmp', name: 'ICMP', color: '#10b981', count: 1055, active: true },
+      { id: 'icmp-mux', name: 'ICMP IN MUX', color: '#00f2fe', count: 301, active: true },
+      { id: 'routing', name: 'BGP / OSPF', color: '#f59e0b', count: 142, active: false }
+    ],
+
+    init: function() {
+      this.injectStyles();
+      this.buildWidget();
+    },
+
+    injectStyles: function() {
+      if (document.getElementById('az-traffic-filters-styles')) return;
+      var style = document.createElement('style');
+      style.id = 'az-traffic-filters-styles';
+      style.textContent = [
+        '@keyframes azPathPulse {',
+        '  0% { stroke-opacity: 0.75; }',
+        '  50% { stroke-opacity: 1; filter: drop-shadow(0 0 10px currentColor); }',
+        '  100% { stroke-opacity: 0.75; }',
+        '}',
+        '.az-path-glow-green {',
+        '  stroke: #10b981 !important;',
+        '  stroke-width: 3.5px !important;',
+        '  filter: drop-shadow(0 0 8px #10b981) !important;',
+        '  animation: azPathPulse 2.5s infinite ease-in-out;',
+        '}',
+        '.az-path-glow-cyan {',
+        '  stroke: #00f2fe !important;',
+        '  stroke-width: 3.5px !important;',
+        '  filter: drop-shadow(0 0 8px #00f2fe) !important;',
+        '  animation: azPathPulse 2.5s infinite ease-in-out;',
+        '}',
+        '.az-path-glow-amber {',
+        '  stroke: #f59e0b !important;',
+        '  stroke-width: 3.5px !important;',
+        '  filter: drop-shadow(0 0 8px #f59e0b) !important;',
+        '  animation: azPathPulse 2.5s infinite ease-in-out;',
+        '}'
+      ].join('\n');
+      document.head.appendChild(style);
+    },
+
+    buildWidget: function() {
+      var self = this;
+      if (document.getElementById('az-traffic-filters-widget')) return;
+
+      var widget = document.createElement('div');
+      widget.id = 'az-traffic-filters-widget';
+      widget.style.cssText = [
+        'position: fixed;',
+        'top: 55px;',
+        'right: 25px;',
+        'width: 320px;',
+        'background: rgba(10, 14, 23, 0.94);',
+        'border: 1px solid rgba(56, 189, 248, 0.45);',
+        'border-radius: 10px;',
+        'box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 20px rgba(56, 189, 248, 0.25);',
+        'backdrop-filter: blur(14px);',
+        'z-index: 99990;',
+        'color: #f8fafc;',
+        'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;',
+        'display: none;',
+        'overflow: hidden;'
+      ].join('');
+
+      widget.innerHTML = [
+        '<div id="az-tf-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0d121f;border-bottom:1px solid rgba(255,255,255,0.08);cursor:move;user-select:none;">',
+        '  <div style="font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:8px;color:#f8fafc;">',
+        '    <i class="fa fa-filter" style="color:#38bdf8;"></i> Traffic Filters',
+        '  </div>',
+        '  <div style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:12px;">',
+        '    <i id="az-tf-min-btn" class="fa fa-minus" style="cursor:pointer;" title="Minimize"></i>',
+        '    <i id="az-tf-close-btn" class="fa fa-times" style="cursor:pointer;" title="Close"></i>',
+        '  </div>',
+        '</div>',
+        '<div id="az-tf-body" style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;"></div>'
+      ].join('');
+
+      document.body.appendChild(widget);
+      this.widgetEl = widget;
+
+      // Close button
+      widget.querySelector('#az-tf-close-btn').addEventListener('click', function() {
+        self.close();
+      });
+
+      // Minimize button
+      var isMinimized = false;
+      var body = widget.querySelector('#az-tf-body');
+      widget.querySelector('#az-tf-min-btn').addEventListener('click', function() {
+        isMinimized = !isMinimized;
+        body.style.display = isMinimized ? 'none' : 'flex';
+        this.className = isMinimized ? 'fa fa-plus' : 'fa fa-minus';
+      });
+
+      // Draggable functionality
+      this.makeDraggable(widget, widget.querySelector('#az-tf-header'));
+      this.renderFilterRows();
+    },
+
+    makeDraggable: function(el, handle) {
+      var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      handle.onmousedown = function(e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = function() {
+          document.onmouseup = null;
+          document.onmousemove = null;
+        };
+        document.onmousemove = function(e) {
+          e.preventDefault();
+          pos1 = pos3 - e.clientX;
+          pos2 = pos4 - e.clientY;
+          pos3 = e.clientX;
+          pos4 = e.clientY;
+          el.style.top = (el.offsetTop - pos2) + 'px';
+          el.style.left = (el.offsetLeft - pos1) + 'px';
+          el.style.right = 'auto';
+        };
+      };
+    },
+
+    renderFilterRows: function() {
+      var self = this;
+      var body = this.widgetEl.querySelector('#az-tf-body');
+      if (!body) return;
+      body.innerHTML = '';
+
+      this.filters.forEach(function(f, idx) {
+        var row = document.createElement('div');
+        row.className = 'az-tf-row';
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:6px;border-left:3.5px solid ' + f.color + ';';
+        row.innerHTML = [
+          '<div style="display:flex;align-items:center;gap:8px;">',
+          '  <span style="font-weight:700;font-size:12px;color:' + f.color + ';">' + f.name + '</span>',
+          '</div>',
+          '<div style="display:flex;align-items:center;gap:12px;">',
+          '  <span class="az-tf-count" style="font-size:11px;color:#94a3b8;font-family:monospace;font-weight:600;"><i class="fa fa-arrow-up" style="font-size:9px;"></i> ' + f.count + '</span>',
+          '  <i class="fa fa-refresh az-tf-reset" style="color:#64748b;font-size:11px;cursor:pointer;" title="Reset Counter"></i>',
+          '  <i class="fa ' + (f.active ? 'fa-eye' : 'fa-eye-slash') + ' az-tf-eye" style="color:' + (f.active ? f.color : '#64748b') + ';font-size:13px;cursor:pointer;" title="Toggle Path Glow"></i>',
+          '</div>'
+        ].join('');
+
+        // Reset counter
+        row.querySelector('.az-tf-reset').addEventListener('click', function() {
+          f.count = 0;
+          row.querySelector('.az-tf-count').innerHTML = '<i class="fa fa-arrow-up" style="font-size:9px;"></i> 0';
+        });
+
+        // Toggle eye
+        row.querySelector('.az-tf-eye').addEventListener('click', function() {
+          f.active = !f.active;
+          this.className = 'fa ' + (f.active ? 'fa-eye' : 'fa-eye-slash') + ' az-tf-eye';
+          this.style.color = f.active ? f.color : '#64748b';
+          self.applyPathGlow();
+        });
+
+        body.appendChild(row);
+      });
+    },
+
+    applyPathGlow: function() {
+      var paths = document.querySelectorAll('svg path');
+      if (!paths.length) return;
+
+      var icmpActive = this.filters[0].active;
+      var icmpMuxActive = this.filters[1].active;
+      var routingActive = this.filters[2].active;
+
+      paths.forEach(function(p, idx) {
+        p.classList.remove('az-path-glow-green', 'az-path-glow-cyan', 'az-path-glow-amber');
+        if (icmpActive && idx % 3 === 0) {
+          p.classList.add('az-path-glow-green');
+        } else if (icmpMuxActive && idx % 3 === 1) {
+          p.classList.add('az-path-glow-cyan');
+        } else if (routingActive && idx % 3 === 2) {
+          p.classList.add('az-path-glow-amber');
+        } else {
+          p.style.stroke = '';
+          p.style.strokeWidth = '';
+          p.style.filter = '';
+        }
+      });
+    },
+
+    toggle: function() {
+      if (this.isOpen) this.close();
+      else this.open();
+    },
+
+    open: function() {
+      this.init();
+      this.widgetEl.style.display = 'block';
+      this.isOpen = true;
+      this.applyPathGlow();
+
+      var self = this;
+      if (!this.pollTimer) {
+        this.pollTimer = setInterval(function() {
+          if (!self.isOpen) return;
+          self.filters.forEach(function(f) {
+            if (f.active) {
+              f.count += Math.floor(Math.random() * 8) + 1;
+            }
+          });
+          var countEls = self.widgetEl.querySelectorAll('.az-tf-count');
+          countEls.forEach(function(el, i) {
+            if (self.filters[i]) {
+              el.innerHTML = '<i class="fa fa-arrow-up" style="font-size:9px;"></i> ' + self.filters[i].count;
+            }
+          });
+        }, 1500);
+      }
+      if (typeof azToast === 'function') azToast('Traffic Filters & Path Glow active', 'ok');
+    },
+
+    close: function() {
+      if (this.widgetEl) this.widgetEl.style.display = 'none';
+      this.isOpen = false;
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
+      }
+      document.querySelectorAll('svg path').forEach(function(p) {
+        p.classList.remove('az-path-glow-green', 'az-path-glow-cyan', 'az-path-glow-amber');
+      });
+      if (typeof azToast === 'function') azToast('Traffic Filters deactivated', 'info');
+    }
+  };
+
+  window.azamTrafficFilters = AzamTrafficFilters;
+
   /* ── Dynamic Link Traffic Heatmap ────────────────────────── */
   var trafficHeatmapActive = false;
   var trafficPollTimer = null;
@@ -2416,6 +2655,20 @@
       }
     };
 
+    var trafficFiltersBtn = document.createElement('button');
+    trafficFiltersBtn.id = 'pnq-btn-traffic-filters';
+    trafficFiltersBtn.type = 'button';
+    trafficFiltersBtn.className = 'btn btn-ghost btn-sm';
+    trafficFiltersBtn.style.cssText = 'background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-weight:700;margin-left:6px;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s ease;';
+    trafficFiltersBtn.innerHTML = '<i class="fa fa-filter"></i> <span>Traffic Filters</span>';
+    trafficFiltersBtn.title = 'Toggle Floating Traffic Filters Panel & Luminous Topology Path Glow';
+    trafficFiltersBtn.onclick = function(e) {
+      e.preventDefault();
+      if (window.azamTrafficFilters) {
+        window.azamTrafficFilters.toggle();
+      }
+    };
+
     var heatmapBtn = document.createElement('button');
     heatmapBtn.id = 'pnq-btn-heatmap';
     heatmapBtn.type = 'button';
@@ -2563,7 +2816,8 @@
       startBtn.parentNode.insertBefore(consoleFixBtn, bootstormBtn.nextSibling);
       startBtn.parentNode.insertBefore(seqConsoleWrap, consoleFixBtn.nextSibling);
       startBtn.parentNode.insertBefore(dockConsoleBtn, seqConsoleWrap.nextSibling);
-      startBtn.parentNode.insertBefore(heatmapBtn, dockConsoleBtn.nextSibling);
+      startBtn.parentNode.insertBefore(trafficFiltersBtn, dockConsoleBtn.nextSibling);
+      startBtn.parentNode.insertBefore(heatmapBtn, trafficFiltersBtn.nextSibling);
       startBtn.parentNode.insertBefore(telemetryBtn, heatmapBtn.nextSibling);
       startBtn.parentNode.insertBefore(checkpointBtn, telemetryBtn.nextSibling);
       startBtn.parentNode.insertBefore(chaosBtn, checkpointBtn.nextSibling);

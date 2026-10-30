@@ -215,7 +215,122 @@
         '  background: #050811;',
         '  overflow: hidden;',
         '}',
-        '.az-dock-pane iframe {',
+        '.az-dock-pane {',
+        '  display: flex;',
+        '  flex-direction: column;',
+        '  height: 100%;',
+        '  background: #060913;',
+        '  border-right: 1px solid rgba(255, 255, 255, 0.08);',
+        '  overflow: hidden;',
+        '}',
+        '.az-dock-pane.maximized {',
+        '  grid-column: 1 / -1 !important;',
+        '  grid-row: 1 / -1 !important;',
+        '  z-index: 10;',
+        '}',
+        '.az-pane-header {',
+        '  height: 30px;',
+        '  background: #0c101a;',
+        '  border-bottom: 1px solid rgba(255, 255, 255, 0.08);',
+        '  display: flex;',
+        '  align-items: center;',
+        '  justify-content: space-between;',
+        '  padding: 0 8px;',
+        '  user-select: none;',
+        '  flex-shrink: 0;',
+        '}',
+        '.az-pane-tabs {',
+        '  display: flex;',
+        '  align-items: center;',
+        '  gap: 4px;',
+        '  overflow-x: auto;',
+        '  scrollbar-width: none;',
+        '}',
+        '.az-pane-tabs::-webkit-scrollbar { display: none; }',
+        '.az-pane-tab {',
+        '  display: flex;',
+        '  align-items: center;',
+        '  gap: 6px;',
+        '  padding: 3px 9px;',
+        '  background: #1e293b;',
+        '  border: 1px solid rgba(56, 189, 248, 0.35);',
+        '  border-radius: 4px 4px 0 0;',
+        '  font-size: 11px;',
+        '  font-weight: 600;',
+        '  color: #f8fafc;',
+        '  cursor: pointer;',
+        '  transition: all 0.15s ease;',
+        '}',
+        '.az-pane-tab:hover {',
+        '  background: #334155;',
+        '  border-color: #38bdf8;',
+        '}',
+        '.az-pane-tab.active {',
+        '  background: rgba(56, 189, 248, 0.2);',
+        '  border-color: #38bdf8;',
+        '  color: #38bdf8;',
+        '}',
+        '.az-pane-tab-pip {',
+        '  width: 6px;',
+        '  height: 6px;',
+        '  border-radius: 50%;',
+        '  background: #10b981;',
+        '  box-shadow: 0 0 6px #10b981;',
+        '}',
+        '.az-pane-tab-close {',
+        '  font-size: 10px;',
+        '  color: #94a3b8;',
+        '  cursor: pointer;',
+        '  padding: 0 2px;',
+        '  border-radius: 2px;',
+        '}',
+        '.az-pane-tab-close:hover {',
+        '  color: #ef4444;',
+        '  background: rgba(239, 68, 68, 0.2);',
+        '}',
+        '.az-pane-add-btn {',
+        '  background: transparent;',
+        '  border: none;',
+        '  color: #64748b;',
+        '  font-size: 14px;',
+        '  font-weight: 700;',
+        '  cursor: pointer;',
+        '  padding: 2px 6px;',
+        '  border-radius: 3px;',
+        '  display: flex;',
+        '  align-items: center;',
+        '  justify-content: center;',
+        '  line-height: 1;',
+        '}',
+        '.az-pane-add-btn:hover {',
+        '  color: #38bdf8;',
+        '  background: rgba(56, 189, 248, 0.15);',
+        '}',
+        '.az-pane-actions {',
+        '  display: flex;',
+        '  align-items: center;',
+        '  gap: 6px;',
+        '}',
+        '.az-pane-max-btn {',
+        '  background: transparent;',
+        '  border: none;',
+        '  color: #64748b;',
+        '  font-size: 11px;',
+        '  cursor: pointer;',
+        '  padding: 2px;',
+        '}',
+        '.az-pane-max-btn:hover {',
+        '  color: #38bdf8;',
+        '}',
+        '.az-pane-content {',
+        '  flex: 1;',
+        '  position: relative;',
+        '  width: 100%;',
+        '  height: calc(100% - 30px);',
+        '  background: #000000;',
+        '  overflow: hidden;',
+        '}',
+        '.az-pane-content iframe {',
         '  width: 100%;',
         '  height: 100%;',
         '  border: none;',
@@ -247,17 +362,21 @@
       dock.innerHTML = [
         '<div id="az-dock-resizer" title="Drag up/down to resize terminal dock"></div>',
         '<div id="az-dock-header">',
-        '  <div id="az-dock-tabs"></div>',
-        '  <div id="az-dock-actions">',
-        '    <div style="display:flex;align-items:center;background:rgba(0,0,0,0.3);border-radius:6px;padding:1px;border:1px solid rgba(255,255,255,0.06);margin-right:4px;">',
+        '  <div style="display:flex;align-items:center;gap:10px;">',
+        '    <span style="font-size:12px;font-weight:700;color:#38bdf8;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;"><i class="fa fa-terminal"></i> QUANTUM DOCKED CONSOLE</span>',
+        '    <div style="display:flex;align-items:center;background:rgba(0,0,0,0.3);border-radius:5px;padding:1px;border:1px solid rgba(255,255,255,0.08);">',
         '      <button class="az-dock-btn" data-layout="1x" title="Single Focused Terminal">1x</button>',
         '      <button class="az-dock-btn" data-layout="2x" title="Dual Split View (50/50)">2x Split</button>',
         '      <button class="az-dock-btn" data-layout="4x" title="Quad Grid (2x2)">4x Grid</button>',
         '    </div>',
         '    <button id="az-btn-syntax" class="az-dock-btn ' + (this.syntaxEnabled ? 'active' : '') + '" title="Toggle Network CLI Syntax Highlighting">🎨 Syntax</button>',
-        '    <button id="az-btn-detach" class="az-dock-btn" title="Detach active tab into external window">↗ Pop-Out</button>',
-        '    <button id="az-btn-min" class="az-dock-btn" title="Minimize/Expand Dock">▾</button>',
-        '    <button id="az-btn-close-all" class="az-dock-btn" style="color:#ef4444;" title="Close All Docked Sessions">✕</button>',
+        '  </div>',
+        '  <div id="az-dock-actions" style="display:flex;align-items:center;gap:8px;">',
+        '    <button id="az-dock-btn-filters" class="az-dock-btn" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.35);color:#38bdf8;font-weight:600;" title="Toggle Traffic Filters & Path Glow"><i class="fa fa-filter"></i> Filters ▾</button>',
+        '    <button id="az-btn-reload-all" class="az-dock-btn" title="Reload Terminal Sessions"><i class="fa fa-refresh"></i></button>',
+        '    <button id="az-btn-min" class="az-dock-btn" title="Minimize/Expand Dock"><i class="fa fa-minus"></i></button>',
+        '    <button id="az-btn-max-height" class="az-dock-btn" title="Maximize Dock Height"><i class="fa fa-expand"></i></button>',
+        '    <button id="az-btn-close-all" class="az-dock-btn" style="color:#ef4444;" title="Close All Docked Sessions"><i class="fa fa-times"></i></button>',
         '  </div>',
         '</div>',
         '<div id="az-dock-body" class="layout-' + this.currentLayout + '"></div>'
@@ -282,13 +401,36 @@
         self.toggleSyntax();
       });
 
-      dock.querySelector('#az-btn-detach').addEventListener('click', function() {
-        if (self.activeTabId) self.detachSession(self.activeTabId);
-      });
+      var fltBtn = dock.querySelector('#az-dock-btn-filters');
+      if (fltBtn) {
+        fltBtn.addEventListener('click', function() {
+          if (window.azamTrafficFilters && typeof window.azamTrafficFilters.toggle === 'function') {
+            window.azamTrafficFilters.toggle();
+          }
+        });
+      }
+
+      var relBtn = dock.querySelector('#az-btn-reload-all');
+      if (relBtn) {
+        relBtn.addEventListener('click', function() {
+          var iframes = self.dockEl.querySelectorAll('iframe');
+          for (var i = 0; i < iframes.length; i++) {
+            try { iframes[i].src = iframes[i].src; } catch (e) {}
+          }
+          if (typeof azToast === 'function') azToast('Reloading active console sessions…', 'info');
+        });
+      }
 
       dock.querySelector('#az-btn-min').addEventListener('click', function() {
         self.toggleMinimize();
       });
+
+      var maxHBtn = dock.querySelector('#az-btn-max-height');
+      if (maxHBtn) {
+        maxHBtn.addEventListener('click', function() {
+          self.toggleMaxHeight();
+        });
+      }
 
       dock.querySelector('#az-btn-close-all').addEventListener('click', function() {
         self.closeAll();
@@ -338,6 +480,17 @@
       if (this.height > maxH) {
         this.height = maxH;
         this.dockEl.style.height = maxH + 'px';
+      }
+    },
+
+    toggleMaxHeight: function() {
+      if (!this.dockEl) return;
+      if (this.isMaxHeight) {
+        this.isMaxHeight = false;
+        this.dockEl.style.height = this.height + 'px';
+      } else {
+        this.isMaxHeight = true;
+        this.dockEl.style.height = '85vh';
       }
     },
 
@@ -401,78 +554,213 @@
     },
 
     renderPanes: function() {
+      var self = this;
       var maxPanes = this.currentLayout === '1x' ? 1 : (this.currentLayout === '2x' ? 2 : 4);
       this.bodyEl.innerHTML = '';
       this.panes = [];
 
       for (var i = 0; i < maxPanes; i++) {
-        var pane = document.createElement('div');
-        pane.className = 'az-dock-pane';
-        pane.setAttribute('data-pane-idx', i);
+        (function(paneIdx) {
+          var pane = document.createElement('div');
+          pane.className = 'az-dock-pane';
+          pane.setAttribute('data-pane-idx', paneIdx);
 
-        // Find session assigned to this pane index
-        var s = this.sessions.find(function(item) { return item.paneIdx === i; });
-        if (!s && i === 0 && this.sessions.length > 0) {
-          // Fallback to active tab
-          s = this.sessions.find(function(item) { return item.id === this.activeTabId; }.bind(this)) || this.sessions[0];
-          if (s) s.paneIdx = 0;
-        }
+          // Get all sessions assigned to this specific pane
+          var paneSessions = self.sessions.filter(function(s) { return s.paneIdx === paneIdx; });
 
-        if (s) {
-          var ifr = document.createElement('iframe');
-          ifr.src = s.url;
-          ifr.setAttribute('allow', 'clipboard-read; clipboard-write');
-          pane.appendChild(ifr);
-        } else {
-          var quickBtns = '';
-          try {
-            var rawNodes = window.nodes || (window.PNQStore && window.PNQStore.state && window.PNQStore.state.nodes) || {};
-            var nodeKeys = Object.keys(rawNodes);
-            if (nodeKeys.length > 0) {
-              quickBtns = '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:440px;">' +
-                nodeKeys.map(function(k) {
-                  var nd = rawNodes[k];
-                  if (!nd || !nd.name) return '';
-                  var isRunning = (nd.status == 2 || nd.status == 3);
-                  var dotColor = isRunning ? '#10b981' : '#64748b';
-                  return '<button type="button" class="az-quick-dock-btn" data-nid="' + k + '" style="background:rgba(255,255,255,0.06);border:1px solid ' + (isRunning ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.12)') + ';color:#f8fafc;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">' +
-                    '<span style="width:7px;height:7px;border-radius:50%;background:' + dotColor + ';display:inline-block;"></span>' +
-                    nd.name +
-                  '</button>';
-                }).join('') +
-              '</div>';
+          // Active session for this pane
+          var activeSession = paneSessions.find(function(s) { return s.id === self.activeTabId; }) || paneSessions[0];
+
+          // 1. Build Pane Header with Per-Pane Tabs & Inline '+' Button
+          var paneHeader = document.createElement('div');
+          paneHeader.className = 'az-pane-header';
+
+          var tabsWrap = document.createElement('div');
+          tabsWrap.className = 'az-pane-tabs';
+
+          paneSessions.forEach(function(s) {
+            var tab = document.createElement('div');
+            tab.className = 'az-pane-tab' + (activeSession && activeSession.id === s.id ? ' active' : '');
+            tab.innerHTML = [
+              '<span class="az-pane-tab-pip"></span>',
+              '<span>' + s.name + '</span>',
+              '<span class="az-pane-tab-close" title="Close Session">✕</span>'
+            ].join('');
+
+            tab.addEventListener('click', function(e) {
+              if (e.target.classList.contains('az-pane-tab-close')) {
+                e.stopPropagation();
+                self.closeSession(s.id);
+              } else {
+                self.activeTabId = s.id;
+                self.renderPanes();
+              }
+            });
+
+            tabsWrap.appendChild(tab);
+          });
+
+          // Add inline '+' button to open/dock another node into this pane
+          var addBtn = document.createElement('button');
+          addBtn.className = 'az-pane-add-btn';
+          addBtn.title = 'Add terminal tab to this pane';
+          addBtn.textContent = '+';
+          addBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            self.showAddNodeDropdown(addBtn, paneIdx);
+          });
+          tabsWrap.appendChild(addBtn);
+
+          // Pane Actions (Maximize / Restore Pane)
+          var actionsWrap = document.createElement('div');
+          actionsWrap.className = 'az-pane-actions';
+          actionsWrap.innerHTML = '<button class="az-pane-max-btn" title="Maximize/Restore Pane"><i class="fa fa-expand"></i></button>';
+          actionsWrap.querySelector('.az-pane-max-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            pane.classList.toggle('maximized');
+            var icon = actionsWrap.querySelector('i');
+            if (icon) {
+              icon.className = pane.classList.contains('maximized') ? 'fa fa-compress' : 'fa fa-expand';
             }
-          } catch (e) {}
+          });
 
-          pane.innerHTML = [
-            '<div class="az-dock-pane-empty">',
-            '  <div style="font-size:26px;opacity:0.6;margin-bottom:4px;">🖥️</div>',
-            '  <div style="font-weight:600;font-size:13px;color:#e2e8f0;">Pane ' + (i + 1) + ' Ready</div>',
-            '  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Click a device on the canvas to dock here' + (quickBtns ? ', or choose device:' : '') + '</div>',
-            quickBtns,
-            '</div>'
-          ].join('\n');
-        }
+          paneHeader.appendChild(tabsWrap);
+          paneHeader.appendChild(actionsWrap);
+          pane.appendChild(paneHeader);
 
-        this.bodyEl.appendChild(pane);
-        this.panes.push(pane);
-      }
+          // 2. Build Pane Content (Active Iframe or Empty State)
+          var paneContent = document.createElement('div');
+          paneContent.className = 'az-pane-content';
 
-      this.bodyEl.querySelectorAll('.az-quick-dock-btn').forEach(function(btn) {
-        btn.onclick = function() {
-          var nid = btn.getAttribute('data-nid');
-          if (nid && window.pnqOpenConsoleAuto) {
-            window.pnqOpenConsoleAuto(nid);
-          } else if (nid && window.azamDockedConsole) {
-            var rawNodes = window.nodes || {};
-            var n = rawNodes[nid] || { id: nid, name: 'Node-' + nid };
-            var u = '/console/console.html?node=' + encodeURIComponent(nid) + '&type=telnet';
-            window.azamDockedConsole.openSession(n, u, n.name);
+          if (activeSession) {
+            var ifr = document.createElement('iframe');
+            ifr.src = activeSession.url;
+            ifr.setAttribute('allow', 'clipboard-read; clipboard-write');
+            paneContent.appendChild(ifr);
+          } else {
+            var quickBtns = '';
+            try {
+              var rawNodes = window.nodes || (window.PNQStore && window.PNQStore.state && window.PNQStore.state.nodes) || {};
+              var nodeKeys = Object.keys(rawNodes);
+              if (nodeKeys.length > 0) {
+                quickBtns = '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:440px;">' +
+                  nodeKeys.map(function(k) {
+                    var nd = rawNodes[k];
+                    if (!nd || !nd.name) return '';
+                    var isRunning = (nd.status == 2 || nd.status == 3);
+                    var dotColor = isRunning ? '#10b981' : '#64748b';
+                    return '<button type="button" class="az-quick-dock-btn" data-nid="' + k + '" style="background:rgba(255,255,255,0.06);border:1px solid ' + (isRunning ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.12)') + ';color:#f8fafc;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">' +
+                      '<span style="width:7px;height:7px;border-radius:50%;background:' + dotColor + ';display:inline-block;"></span>' +
+                      nd.name +
+                    '</button>';
+                  }).join('') +
+                '</div>';
+              }
+            } catch (err) {}
+
+            paneContent.innerHTML = [
+              '<div class="az-dock-pane-empty">',
+              '  <div style="font-size:26px;opacity:0.6;margin-bottom:4px;">🖥️</div>',
+              '  <div style="font-weight:600;font-size:13px;color:#e2e8f0;">Pane ' + (paneIdx + 1) + ' Ready</div>',
+              '  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Click a device on canvas or choose below to dock here:</div>',
+              quickBtns,
+              '</div>'
+            ].join('\n');
+
+            paneContent.querySelectorAll('.az-quick-dock-btn').forEach(function(btn) {
+              btn.onclick = function() {
+                var nid = btn.getAttribute('data-nid');
+                if (nid) {
+                  var rawNodes = window.nodes || {};
+                  var n = rawNodes[nid] || { id: nid, name: 'Node-' + nid };
+                  var u = '/console/console.html?node=' + encodeURIComponent(nid) + '&type=telnet';
+                  self.openSessionInPane(n, u, n.name, paneIdx);
+                }
+              };
+            });
           }
-        };
-      });
+
+          pane.appendChild(paneContent);
+          self.bodyEl.appendChild(pane);
+          self.panes.push(pane);
+        })(i);
+      }
     },
 
+    showAddNodeDropdown: function(btn, targetPaneIdx) {
+      var self = this;
+      var existing = document.getElementById('az-pane-add-menu');
+      if (existing) existing.remove();
+
+      var rawNodes = window.nodes || {};
+      var keys = Object.keys(rawNodes);
+      if (keys.length === 0) {
+        if (typeof azToast === 'function') azToast('No nodes available in topology', 'warning');
+        return;
+      }
+
+      var menu = document.createElement('div');
+      menu.id = 'az-pane-add-menu';
+      menu.style.cssText = 'position:fixed;background:#0f172a;border:1px solid rgba(56,189,248,0.4);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.8);z-index:999999;max-height:220px;overflow-y:auto;padding:4px;min-width:160px;';
+
+      var rect = btn.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 4) + 'px';
+      menu.style.left = rect.left + 'px';
+
+      keys.forEach(function(k) {
+        var nd = rawNodes[k];
+        if (!nd || !nd.name) return;
+        var item = document.createElement('div');
+        item.style.cssText = 'padding:5px 8px;font-size:11px;color:#f8fafc;cursor:pointer;border-radius:4px;display:flex;align-items:center;gap:6px;';
+        var isRunning = (nd.status == 2 || nd.status == 3);
+        item.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:' + (isRunning ? '#10b981' : '#64748b') + '"></span> ' + nd.name;
+        item.onmouseenter = function() { this.style.background = 'rgba(56,189,248,0.2)'; };
+        item.onmouseleave = function() { this.style.background = 'transparent'; };
+        item.onclick = function(e) {
+          e.stopPropagation();
+          menu.remove();
+          var u = '/console/console.html?node=' + encodeURIComponent(k) + '&type=telnet';
+          self.openSessionInPane(nd, u, nd.name, targetPaneIdx);
+        };
+        menu.appendChild(item);
+      });
+
+      document.body.appendChild(menu);
+
+      function closeMenu(e) {
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      }
+      setTimeout(function() { document.addEventListener('click', closeMenu); }, 50);
+    },
+
+    openSessionInPane: function(node, url, name, paneIdx) {
+      var id = String(node.id || (node && node.node) || name);
+      name = name || (node.name || 'Node-' + id);
+
+      var existing = this.sessions.find(function(s) { return s.id === id; });
+      if (existing) {
+        existing.paneIdx = paneIdx;
+        this.activeTabId = id;
+        this.renderPanes();
+        this.showDock();
+        return;
+      }
+
+      var session = {
+        id: id,
+        name: name,
+        url: url,
+        paneIdx: paneIdx
+      };
+
+      this.sessions.push(session);
+      this.activeTabId = id;
+      this.renderPanes();
+      this.showDock();
+    },
     openSession: function(node, url, name) {
       var id = String(node.id || (node && node.node) || name);
       name = name || (node.name || 'Node-' + id);
@@ -510,6 +798,14 @@
       this.renderTabs();
       this.renderPanes();
       this.showDock();
+    },
+
+    open: function() {
+      this.showDock();
+    },
+
+    close: function() {
+      if (this.dockEl) this.dockEl.style.display = 'none';
     },
 
     showDock: function() {

@@ -147,5 +147,23 @@ class TestZeroTrace(unittest.TestCase):
             bcontent = f.read()
         self.assertIn("/run/azamlabs/broker.sock", bcontent, "azamlabs-brokerd.py must use /run/azamlabs/broker.sock")
 
+    def test_login_page_integrity_and_no_theme_collision(self):
+        """Verify that login page retains its cyber-glass theme and has no dark-theme collision."""
+        login_html = os.path.join(ROOT_DIR, "login", "index.html")
+        self.assertTrue(os.path.isfile(login_html), "login/index.html must exist in repo")
+        with open(login_html, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertNotIn("azambasha-dark-theme", html, "login/index.html must not include azambasha-dark-theme")
+        self.assertIn("login.css", html, "login/index.html must link to login.css")
+
+        theme_sh = os.path.join(ROOT_DIR, "scripts", "azambasha-dark-theme.sh")
+        self.assertTrue(os.path.isfile(theme_sh), "scripts/azambasha-dark-theme.sh must exist")
+        with open(theme_sh, "r", encoding="utf-8") as f:
+            sh_content = f.read()
+        self.assertNotIn(".login-wrap {", sh_content, "azambasha-dark-theme.sh must not override .login-wrap")
+        self.assertNotIn(".login-card {", sh_content, "azambasha-dark-theme.sh must not override .login-card")
+        self.assertIn('sed -i \'/id="azambasha-dark-theme"/d\' /opt/unetlab/html/login/index.html', sh_content,
+                      "azambasha-dark-theme.sh must sanitize login/index.html")
+
 if __name__ == "__main__":
     unittest.main()

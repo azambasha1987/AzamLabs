@@ -2340,15 +2340,22 @@ configure_guac_key() {
 }
 
 install_telnetlib3() {
-    log '[11c minimal] installing telnetlib3 from the network and verifying import'
+    log '[11c minimal] installing telnetlib3 and websockets from the network and verifying import'
     require_command pip3
-    pip3 install --break-system-packages telnetlib3 >>"$LOG" 2>&1 || die 'telnetlib3 installation failed'
-    python3 -c 'import telnetlib3' >>"$LOG" 2>&1 || die 'telnetlib3 import verification failed'
+    pip3 install --break-system-packages telnetlib3 websockets >>"$LOG" 2>&1 || die 'telnetlib3 installation failed'
+    python3 -c 'import telnetlib3, websockets' >>"$LOG" 2>&1 || die 'telnetlib3/websockets import verification failed'
     log '[11c minimal] retrying the postinst-owned console mux after its dependency is present'
-    systemctl unmask azam-console-mux.service >>"$LOG" 2>&1 || die 'could not unmask azam-console-mux.service'
+    for sname in console-mux guac-lite shell-bridge http-bridge; do
+        if [ -f "/lib/systemd/system/pnet-${sname}.service" ] && [ ! -f "/lib/systemd/system/azam-${sname}.service" ]; then
+            ln -sf "/lib/systemd/system/pnet-${sname}.service" "/lib/systemd/system/azam-${sname}.service" >>"$LOG" 2>&1 || true
+        elif [ -f "/lib/systemd/system/azam-${sname}.service" ] && [ ! -f "/lib/systemd/system/pnet-${sname}.service" ]; then
+            ln -sf "/lib/systemd/system/azam-${sname}.service" "/lib/systemd/system/pnet-${sname}.service" >>"$LOG" 2>&1 || true
+        fi
+    done
+    systemctl unmask pnet-console-mux.service azam-console-mux.service >>"$LOG" 2>&1 || true
     systemctl daemon-reload >>"$LOG" 2>&1 || die 'systemd reload failed before console mux cutover'
     systemctl stop pnet-telnet-bridge.service pnet-websockify.service >>"$LOG" 2>&1 || true
-    if systemctl enable --now azam-console-mux.service >>"$LOG" 2>&1; then
+    if systemctl enable --now pnet-console-mux.service azam-console-mux.service >>"$LOG" 2>&1; then
         systemctl disable pnet-telnet-bridge.service pnet-websockify.service >>"$LOG" 2>&1 || true
     else
         systemctl restart pnet-telnet-bridge.service pnet-websockify.service >>"$LOG" 2>&1 || true

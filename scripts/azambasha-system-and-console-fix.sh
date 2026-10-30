@@ -47,6 +47,13 @@ if [[ "${1:-}" =~ ^(--check|--status)$ ]]; then
         echo "STOPPED / INACTIVE"
     fi
 
+    echo -n "[*] Console Multiplexer (Port 8022): "
+    if ss -tlnp 2>/dev/null | grep -q ":8022\b"; then
+        echo "RUNNING"
+    else
+        echo "STOPPED / INACTIVE"
+    fi
+
     echo -n "[*] Time Synchronization (systemd-timesyncd/NTP): "
     if systemctl is-active systemd-timesyncd 2>/dev/null | grep -q "active"; then
         echo "ACTIVE"
@@ -151,7 +158,7 @@ fi
 echo "  -> 10-Year IP-SAN SSL Certificate installed covering all VM IP addresses and paths."
 
 # 2. HTML5 Guacamole & Console WebSocket Fix
-echo "[2/4] Hardening HTML5 Guacamole (guacd) Web Console Daemon..."
+echo "[2/4] Hardening HTML5 Guacamole (guacd) & Console WebSocket Multiplexer..."
 if command -v guacd &>/dev/null; then
     mkdir -p /etc/systemd/system/guacd.service.d
     cat << 'EOF' > /etc/systemd/system/guacd.service.d/override.conf
@@ -164,6 +171,29 @@ EOF
     systemctl restart guacd 2>/dev/null || service guacd restart 2>/dev/null || true
     echo "  -> guacd service hardened with auto-restart and 65,535 file descriptors."
 fi
+
+# Ensure Console Multiplexer, Bridges & Tokens
+mkdir -p /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+chown -R www-data:www-data /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+chmod 0750 /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+
+for sname in console-mux guac-lite shell-bridge http-bridge; do
+    if [ -f "/lib/systemd/system/pnet-${sname}.service" ] && [ ! -f "/lib/systemd/system/azam-${sname}.service" ]; then
+        ln -sf "/lib/systemd/system/pnet-${sname}.service" "/lib/systemd/system/azam-${sname}.service" 2>/dev/null || true
+    elif [ -f "/lib/systemd/system/azam-${sname}.service" ] && [ ! -f "/lib/systemd/system/pnet-${sname}.service" ]; then
+        ln -sf "/lib/systemd/system/azam-${sname}.service" "/lib/systemd/system/pnet-${sname}.service" 2>/dev/null || true
+    fi
+done
+
+systemctl unmask pnet-console-mux.service azam-console-mux.service 2>/dev/null || true
+systemctl daemon-reload 2>/dev/null || true
+systemctl enable --now pnet-console-mux.service azam-console-mux.service 2>/dev/null || true
+systemctl enable --now pnet-guac-lite.service azam-guac-lite.service 2>/dev/null || true
+systemctl enable --now pnet-shell-bridge.service azam-shell-bridge.service 2>/dev/null || true
+systemctl enable --now pnet-http-bridge.service azam-http-bridge.service 2>/dev/null || true
+systemctl enable --now pnet-token-janitor.timer 2>/dev/null || true
+systemctl enable --now pnetlab-labstated.service 2>/dev/null || true
+echo "  -> Console multiplexer (:8022) & WebSocket bridges hardened and active."
 
 # 3. Cloud Interfaces (pnet0..pnet9) Promiscuous Mode & DHCP Fix
 echo "[3/4] Enabling Promiscuous Mode on Cloud Bridge Interfaces (pnet0..pnet9)..."

@@ -132,18 +132,66 @@ if [ -d "$GUAC_ENV_DIR" ] || [ -f "/lib/systemd/system/azam-guac-lite.service" ]
 
     if systemctl is-active pnet-guac-lite &>/dev/null; then
         echo -e "  ${GREEN}[✔ OK]${RESET} pnet-guac-lite service is active (port 8081)."
-    elif [ -f "/lib/systemd/system/azam-guac-lite.service" ]; then
+    elif [ -f "/lib/systemd/system/pnet-guac-lite.service" ] || [ -f "/lib/systemd/system/azam-guac-lite.service" ]; then
         echo -e "  ${YELLOW}[⚠ FIXING]${RESET} pnet-guac-lite service installed but inactive."
         if [ "$MODE" = "--fix" ]; then
-            systemctl enable --now pnet-guac-lite 2>/dev/null || true
+            systemctl enable --now pnet-guac-lite 2>/dev/null || systemctl enable --now azam-guac-lite 2>/dev/null || true
             echo -e "  ${GREEN}[✔ DONE]${RESET} pnet-guac-lite started and enabled."
             FIXES_APPLIED=$((FIXES_APPLIED+1))
         fi
     fi
 fi
 
-# === 5. Stale Wireshark Pipes & Capture Sockets ===
-echo -e "\n[5/6] ${BOLD}Stale Capture Pipes & Wireshark Sockets Cleanup${RESET}"
+# === 5. Console Multiplexer & WebSocket Bridges (pnet-console-mux :8022 & :6080) ===
+echo -e "\n[5/7] ${BOLD}Console Multiplexer & WebSocket Bridges (:8022 Telnet / :6080 VNC)${RESET}"
+MUX_OK=true
+if ! ss -tlnp 2>/dev/null | grep -q ":8022\b"; then
+    MUX_OK=false
+fi
+
+# Check if masked
+if systemctl is-masked pnet-console-mux 2>/dev/null | grep -q "masked" || systemctl is-masked azam-console-mux 2>/dev/null | grep -q "masked"; then
+    MUX_OK=false
+fi
+
+if [ "$MUX_OK" = true ]; then
+    echo -e "  ${GREEN}[✔ OK]${RESET} Console mux is active and listening on port 8022 (Telnet) & 6080 (VNC)."
+else
+    echo -e "  ${YELLOW}[⚠ FIXING]${RESET} Console mux (:8022) is inactive or masked — web terminals will be blank."
+    if [ "$MODE" = "--fix" ]; then
+        # Ensure dependencies
+        python3 -c "import telnetlib3, websockets" 2>/dev/null || pip3 install --break-system-packages telnetlib3 websockets 2>/dev/null || true
+        
+        # Token runtime storage
+        mkdir -p /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+        chown -R www-data:www-data /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+        chmod 0750 /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+
+        # Service aliases
+        for sname in console-mux guac-lite shell-bridge http-bridge; do
+            if [ -f "/lib/systemd/system/pnet-${sname}.service" ] && [ ! -f "/lib/systemd/system/azam-${sname}.service" ]; then
+                ln -sf "/lib/systemd/system/pnet-${sname}.service" "/lib/systemd/system/azam-${sname}.service" 2>/dev/null || true
+            elif [ -f "/lib/systemd/system/azam-${sname}.service" ] && [ ! -f "/lib/systemd/system/pnet-${sname}.service" ]; then
+                ln -sf "/lib/systemd/system/azam-${sname}.service" "/lib/systemd/system/pnet-${sname}.service" 2>/dev/null || true
+            fi
+        done
+
+        # Unmask and start
+        systemctl unmask pnet-console-mux.service azam-console-mux.service 2>/dev/null || true
+        systemctl daemon-reload 2>/dev/null || true
+        systemctl enable --now pnet-console-mux.service azam-console-mux.service 2>/dev/null || true
+        systemctl enable --now pnet-shell-bridge.service azam-shell-bridge.service 2>/dev/null || true
+        systemctl enable --now pnet-http-bridge.service azam-http-bridge.service 2>/dev/null || true
+        systemctl enable --now pnet-token-janitor.timer 2>/dev/null || true
+        systemctl enable --now pnetlab-labstated.service 2>/dev/null || true
+        
+        echo -e "  ${GREEN}[✔ DONE]${RESET} Unmasked, enabled, and started console multiplexer & bridges."
+        FIXES_APPLIED=$((FIXES_APPLIED+1))
+    fi
+fi
+
+# === 6. Stale Wireshark Pipes & Capture Sockets ===
+echo -e "\n[6/7] ${BOLD}Stale Capture Pipes & Wireshark Sockets Cleanup${RESET}"
 STALE_COUNT=0
 if [ -d "/tmp" ]; then
     # Clean stale Wireshark named pipes
@@ -164,8 +212,8 @@ else
     fi
 fi
 
-# === 6. Apply Apache Reload if Fixes Were Applied ===
-echo -e "\n[6/6] ${BOLD}Apache Configuration Validation & Reload${RESET}"
+# === 7. Apply Apache Reload if Fixes Were Applied ===
+echo -e "\n[7/7] ${BOLD}Apache Configuration Validation & Reload${RESET}"
 if apache2ctl configtest 2>&1 | grep -q "Syntax OK"; then
     echo -e "  ${GREEN}[✔ OK]${RESET} Apache configuration syntax is valid."
     if [ "$MODE" = "--fix" ] && [ "$FIXES_APPLIED" -gt 0 ]; then

@@ -54,7 +54,9 @@ COMPATIBILITY_PATTERNS = [
     "pnetlab-satellite",
     "pnetlab/cluster",
     "azamlabs/pnetlab",
-    "pnetlab_db"
+    "pnetlab_db",
+    "pnetlab-webconsole",
+    "pnetlab-labstate"
 ]
 
 class TestZeroTrace(unittest.TestCase):

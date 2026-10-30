@@ -913,6 +913,36 @@ if os.path.isfile(unl_file):
     if t_unl in unl_c:
         with open(unl_file, "w", encoding="utf-8") as f:
             f.write(unl_c.replace(t_unl, r_unl))
+
+# Patch pnetlab-webconsole.js for In-Canvas Docked Terminal Console
+wc_file = "/opt/unetlab/html/themes/default/js/pnetlab-webconsole.js"
+if os.path.isfile(wc_file):
+    with open(wc_file, "r", encoding="utf-8") as f:
+        wc_c = f.read()
+
+    changed_wc = False
+    old_wc_open = '''  function openWebConsole(nodeId) {
+    if (getMode() === 'tab') openInTab(nodeId);
+    else openEmbedded(nodeId);
+  }'''
+    new_wc_open = '''  function openWebConsole(nodeId) {
+    if (window.azamDockedConsole && typeof window.azamDockedConsole.openSession === 'function' && window.azamDockedConsole.isEnabled()) {
+      var n = (window.nodes && window.nodes[nodeId]) || { id: nodeId, name: 'Node ' + nodeId };
+      var u = consoleUrl(nodeId);
+      window.azamDockedConsole.openSession(n, u, n.name || ('Node ' + nodeId));
+      return;
+    }
+    if (getMode() === 'tab') openInTab(nodeId);
+    else openEmbedded(nodeId);
+  }'''
+    if old_wc_open in wc_c:
+        wc_c = wc_c.replace(old_wc_open, new_wc_open, 1)
+        changed_wc = True
+
+    if changed_wc:
+        with open(wc_file, "w", encoding="utf-8") as f:
+            f.write(wc_c)
+        print("  [✔] pnetlab-webconsole.js patched for in-canvas docked console")
 PY_IOL_PATCH
 
 # Compile ksm_merge_exec wrapper
@@ -1038,6 +1068,18 @@ for b_cand in /opt/unetlab/scripts/azambasha-bootstorm.py /opt/azambasha/scripts
         break
     fi
 done
+
+# ==============================================================================
+# 8. Web Console Daemon & WebSocket Bridges (pnet-console-mux, guac-lite, etc.)
+# ==============================================================================
+echo "[*] Ensuring Web Console WebSocket bridges and mux daemons are running..."
+systemctl unmask pnet-console-mux.service 2>/dev/null || true
+systemctl enable --now pnet-console-mux.service \
+                       pnet-guac-lite.service \
+                       pnet-shell-bridge.service \
+                       pnet-http-bridge.service \
+                       pnet-token-janitor.timer \
+                       pnetlab-labstated.service 2>/dev/null || true
 
 # Status Summary
 echo ""

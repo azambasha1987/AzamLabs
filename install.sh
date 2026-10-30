@@ -939,7 +939,10 @@ systemctl restart apache2 2>/dev/null || true
 
 # --- Step 6: Configure Guacamole, Telnet & Web Console ---
 echo "[6/8] Configuring Guacamole daemon and Python console bridges..."
-mkdir -p /etc/azam-webconsole
+mkdir -p /etc/azam-webconsole /etc/pnet-webconsole /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens
+chown -R www-data:www-data /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+chmod 0750 /dev/shm/pnet-tokens /dev/shm/pnet-http-tokens 2>/dev/null || true
+
 GUAC_ENV="/etc/azam-webconsole/guac.env"
 if [ ! -f "$GUAC_ENV" ]; then
     RANDOM_KEY="$(head -c 24 /dev/urandom | base64 | tr -d '\n')"
@@ -951,13 +954,32 @@ if [ ! -f "$GUAC_ENV" ]; then
         sed -i "s|define('GUAC_CRYPT_KEY', '[^']*');|define('GUAC_CRYPT_KEY', '$RANDOM_KEY');|" "$CONSOLE_CONF"
     fi
 fi
+# Mirror guac.env for legacy pnet-webconsole path
+[ -f "$GUAC_ENV" ] && cp -f "$GUAC_ENV" /etc/pnet-webconsole/guac.env 2>/dev/null || true
 
-# Install Python telnetlib3 for console multiplexer
-pip3 install --break-system-packages telnetlib3 2>/dev/null || true
+# Install Python telnetlib3 & websockets for console multiplexer
+pip3 install --break-system-packages telnetlib3 websockets 2>/dev/null || true
+
+# Ensure service aliases exist between azam-* and pnet-*
+for sname in console-mux guac-lite shell-bridge http-bridge; do
+    if [ -f "/lib/systemd/system/pnet-${sname}.service" ] && [ ! -f "/lib/systemd/system/azam-${sname}.service" ]; then
+        ln -sf "/lib/systemd/system/pnet-${sname}.service" "/lib/systemd/system/azam-${sname}.service" 2>/dev/null || true
+    elif [ -f "/lib/systemd/system/azam-${sname}.service" ] && [ ! -f "/lib/systemd/system/pnet-${sname}.service" ]; then
+        ln -sf "/lib/systemd/system/azam-${sname}.service" "/lib/systemd/system/pnet-${sname}.service" 2>/dev/null || true
+    fi
+done
+
+# Explicitly unmask console-mux (prevent /dev/null mask preventing terminal connections)
+systemctl unmask pnet-console-mux.service azam-console-mux.service 2>/dev/null || true
+systemctl daemon-reload 2>/dev/null || true
 
 systemctl enable --now guacd.service 2>/dev/null || true
-systemctl enable --now azam-guac-lite.service 2>/dev/null || true
-systemctl enable --now azam-console-mux.service 2>/dev/null || true
+systemctl enable --now pnet-guac-lite.service azam-guac-lite.service 2>/dev/null || true
+systemctl enable --now pnet-console-mux.service azam-console-mux.service 2>/dev/null || true
+systemctl enable --now pnet-shell-bridge.service azam-shell-bridge.service 2>/dev/null || true
+systemctl enable --now pnet-http-bridge.service azam-http-bridge.service 2>/dev/null || true
+systemctl enable --now pnet-token-janitor.timer 2>/dev/null || true
+systemctl enable --now pnetlab-labstated.service 2>/dev/null || true
 
 # Enable AzamLabs Privilege Broker Daemon
 cat > /etc/systemd/system/azamlabs-brokerd.service << 'EOF'

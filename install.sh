@@ -1078,6 +1078,63 @@ except Exception as e:
 PY_QEMU_VIOS
 fi
 
+# Patch functions.php to harden unlockFile and unlockSession against Slim ErrorException
+if [ -f /opt/unetlab/html/includes/functions.php ]; then
+    python3 - << 'PY_FUNCS_LOCK' 2>/dev/null || true
+fpath = "/opt/unetlab/html/includes/functions.php"
+try:
+    with open(fpath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    old_unlock_file = """function unlockFile($file)
+{
+    if (is_file($file . ".lock")) {
+        return unlink($file . ".lock");
+    }
+    return true;
+}"""
+
+    new_unlock_file = """function unlockFile($file)
+{
+    $lock = $file . ".lock";
+    if (file_exists($lock)) {
+        @unlink($lock);
+        clearstatcache(true, $lock);
+    }
+    return true;
+}"""
+
+    old_unlock_session = """function unlockSession($labSession)
+{
+    $file = BASE_LAB . "/" . $labSession . ".lock";
+    if (is_file($file)) {
+        return unlink($file);
+    }
+    return true;
+}"""
+
+    new_unlock_session = """function unlockSession($labSession)
+{
+    $file = BASE_LAB . "/" . $labSession . ".lock";
+    if (file_exists($file)) {
+        @unlink($file);
+        clearstatcache(true, $file);
+    }
+    return true;
+}"""
+
+    if old_unlock_file in content:
+        content = content.replace(old_unlock_file, new_unlock_file)
+    if old_unlock_session in content:
+        content = content.replace(old_unlock_session, new_unlock_session)
+
+    with open(fpath, "w", encoding="utf-8") as f:
+        f.write(content)
+except Exception:
+    pass
+PY_FUNCS_LOCK
+fi
+
 # Systemd tmpfiles rule for IOL AF_UNIX socket directories
 mkdir -p /etc/tmpfiles.d
 cat > /etc/tmpfiles.d/azamlabs-iol.conf << 'EOF'
@@ -1135,6 +1192,8 @@ if [ -n "$STATIC_IP" ] && [ -f "${SCRIPT_DIR}/scripts/azambasha-fix-network-boot
 fi
 if [ -f "${SCRIPT_DIR}/scripts/azambasha-php-modernizer.sh" ]; then
     bash "${SCRIPT_DIR}/scripts/azambasha-php-modernizer.sh" || true
+elif [ -f "/opt/unetlab/scripts/azambasha-php-modernizer.sh" ]; then
+    bash "/opt/unetlab/scripts/azambasha-php-modernizer.sh" || true
 fi
 if [ -f "${SCRIPT_DIR}/scripts/azambasha-cgroups-v2-engine.sh" ]; then
     bash "${SCRIPT_DIR}/scripts/azambasha-cgroups-v2-engine.sh" || true

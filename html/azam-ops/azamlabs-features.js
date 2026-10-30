@@ -2282,7 +2282,14 @@
   /* ── Canvas In-Lab Toolbar Actions ────────────────────────── */
   function injectCanvasToolbarActions() {
     var startBtn = document.querySelector('.action-nodesstart, [data-action="nodesstart"]');
-    if (!startBtn || (document.getElementById('pnq-btn-bootstorm') && document.getElementById('pnq-btn-theme-toggle'))) return;
+    if (!startBtn) return;
+    if (document.getElementById('pnq-btn-bootstorm') && document.getElementById('pnq-theme-picker-wrap')) return;
+
+    // Clean up any stale/orphaned button instances before inserting
+    ['pnq-btn-bootstorm', 'pnq-btn-console-fix', 'pnq-btn-seq-console-wrap', 'pnq-btn-heatmap-toggle', 'pnq-btn-telemetry-hud', 'pnq-btn-checkpoint', 'pnq-btn-chaos', 'pnq-btn-export-pack', 'pnq-btn-ai-drawer', 'pnq-btn-theme-toggle', 'pnq-theme-picker-wrap'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
 
     var bootstormBtn = document.createElement('button');
     bootstormBtn.id = 'pnq-btn-bootstorm';
@@ -2446,17 +2453,74 @@
       toggleAiDrawer();
     };
 
-    var themeToggleBtn = document.createElement('button');
-    themeToggleBtn.id = 'pnq-btn-theme-toggle';
-    themeToggleBtn.type = 'button';
-    themeToggleBtn.className = 'btn btn-ghost btn-sm';
-    themeToggleBtn.style.cssText = 'border:1px solid rgba(251,191,36,0.3);font-weight:600;margin-left:6px;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s ease;';
-    themeToggleBtn.onclick = function(e) {
+    // Multi-Theme Interactive Palette Picker Dropdown
+    var themePickerWrap = document.createElement('div');
+    themePickerWrap.id = 'pnq-theme-picker-wrap';
+    themePickerWrap.style.cssText = 'position:relative;display:inline-block;margin-left:6px;vertical-align:middle;';
+
+    var themePickerBtn = document.createElement('button');
+    themePickerBtn.id = 'pnq-btn-theme-picker';
+    themePickerBtn.type = 'button';
+    themePickerBtn.className = 'btn btn-ghost btn-sm';
+    themePickerBtn.style.cssText = 'border:1px solid var(--pnq-border, rgba(255,255,255,0.18));font-weight:600;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:var(--pnq-surface-2, rgba(255,255,255,0.06));color:var(--pnq-text, #f8fafc);transition:all 0.2s ease;';
+    themePickerBtn.innerHTML = '<span class="pnq-theme-dot" style="width:10px;height:10px;border-radius:50%;background:#3b82f6;box-shadow:0 0 6px #3b82f6;display:inline-block;"></span> <span class="pnq-theme-label" style="font-size:12px;">Theme: Obsidian Slate</span> <i class="fa fa-caret-down" style="font-size:11px;opacity:0.7;"></i>';
+    themePickerBtn.title = 'Choose Visual Palette (7 Enterprise Themes)';
+
+    var themeDropdown = document.createElement('div');
+    themeDropdown.id = 'pnq-theme-dropdown';
+    themeDropdown.style.cssText = 'display:none;position:absolute;top:calc(100% + 6px);right:0;width:240px;background:var(--pnq-surface, #0f1117);border:1px solid var(--pnq-border-strong, rgba(255,255,255,0.2));border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,0.7);z-index:999999;padding:6px;backdrop-filter:blur(14px);';
+
+    var PALETTES_LIST = [
+      { id: 'dark',        name: 'Obsidian Slate', desc: 'Default Dark',         dot: '#3b82f6', bg: '#0f1117' },
+      { id: 'light',       name: 'Crisp Daylight', desc: 'Modern Daylight Light',dot: '#2563eb', bg: '#ffffff' },
+      { id: 'cyberpunk',   name: 'Cyber Matrix',   desc: 'Cyberpunk Neon Glow',  dot: '#00f2fe', bg: '#040711' },
+      { id: 'nord',        name: 'Nord Arctic',    desc: 'Scandinavian Frost',   dot: '#88c0d0', bg: '#2e3440' },
+      { id: 'midnight',    name: 'Midnight Navy',  desc: 'Enterprise NOC Opera', dot: '#38bdf8', bg: '#0a1530' },
+      { id: 'tokyo-night', name: 'Tokyo Night',    desc: 'Developer Twilight',   dot: '#bb9af7', bg: '#1a1b26' },
+      { id: 'oled',        name: 'Pure OLED',      desc: '100% True Black',      dot: '#00f0ff', bg: '#000000' }
+    ];
+
+    PALETTES_LIST.forEach(function(p) {
+      var item = document.createElement('div');
+      item.className = 'pnq-theme-item';
+      item.setAttribute('data-theme-choice', p.id);
+      item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:6px;cursor:pointer;transition:background 0.15s;font-size:12px;margin-bottom:2px;';
+      item.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="width:12px;height:12px;border-radius:50%;background:' + p.bg + ';border:2px solid ' + p.dot + ';box-shadow:0 0 5px ' + p.dot + ';display:inline-block;"></span>' +
+        '<div><div style="font-weight:600;color:var(--pnq-text, #f8fafc);line-height:1.2;">' + p.name + '</div><div style="font-size:10px;color:var(--pnq-text-muted, #94a3b8);line-height:1.1;">' + p.desc + '</div></div>' +
+        '</div><i class="fa fa-check pnq-theme-check" style="color:' + p.dot + ';display:none;font-size:11px;"></i>';
+      item.onmouseover = function() { this.style.backgroundColor = 'var(--pnq-surface-2, rgba(255,255,255,0.08))'; };
+      item.onmouseout = function() { this.style.backgroundColor = 'transparent'; };
+      item.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.azamThemeEngine) {
+          window.azamThemeEngine.setTheme(p.id);
+          azToast('Theme: Switched to ' + p.name, 'info');
+        }
+        themeDropdown.style.display = 'none';
+      };
+      themeDropdown.appendChild(item);
+    });
+
+    themePickerBtn.onclick = function(e) {
       e.preventDefault();
-      if (window.azamThemeEngine) {
-        window.azamThemeEngine.toggle();
+      e.stopPropagation();
+      var isVisible = themeDropdown.style.display === 'block';
+      themeDropdown.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible && window.azamThemeEngine) {
+        window.azamThemeEngine.updateButtons();
       }
     };
+
+    document.addEventListener('click', function(e) {
+      if (!themePickerWrap.contains(e.target)) {
+        themeDropdown.style.display = 'none';
+      }
+    });
+
+    themePickerWrap.appendChild(themePickerBtn);
+    themePickerWrap.appendChild(themeDropdown);
 
     if (startBtn.parentNode) {
       startBtn.parentNode.insertBefore(bootstormBtn, startBtn.nextSibling);
@@ -2468,7 +2532,7 @@
       startBtn.parentNode.insertBefore(chaosBtn, checkpointBtn.nextSibling);
       startBtn.parentNode.insertBefore(exportBtn, chaosBtn.nextSibling);
       startBtn.parentNode.insertBefore(aiDrawerBtn, exportBtn.nextSibling);
-      startBtn.parentNode.insertBefore(themeToggleBtn, aiDrawerBtn.nextSibling);
+      startBtn.parentNode.insertBefore(themePickerWrap, aiDrawerBtn.nextSibling);
     }
     if (window.azamThemeEngine) {
       window.azamThemeEngine.updateButtons();
@@ -2498,34 +2562,58 @@
     if (ul) ul.appendChild(li);
   }
 
-  /* ── Universal Theme Engine & Synchronizer ──────────────── */
+  /* ── Universal Multi-Theme Engine (7 Enterprise Palettes) ───────── */
   function initThemeEngineAndSwitcher() {
     var MAIN_THEME_KEY = 'pnq.main.theme';
     var CANVAS_THEME_KEY = 'pnq.canvasflow.theme';
     var BG_PREF_KEY = 'pnq_bg_pref';
 
+    var PALETTES = [
+      { id: 'dark',        name: 'Obsidian Slate', desc: 'Default Dark',          dot: '#3b82f6', bg: '#0f1117' },
+      { id: 'light',       name: 'Crisp Daylight', desc: 'Modern Daylight Light', dot: '#2563eb', bg: '#ffffff' },
+      { id: 'cyberpunk',   name: 'Cyber Matrix',   desc: 'Cyberpunk Neon Glow',   dot: '#00f2fe', bg: '#040711' },
+      { id: 'nord',        name: 'Nord Arctic',    desc: 'Scandinavian Frost',    dot: '#88c0d0', bg: '#2e3440' },
+      { id: 'midnight',    name: 'Midnight Navy',  desc: 'Enterprise NOC Opera',  dot: '#38bdf8', bg: '#0a1530' },
+      { id: 'tokyo-night', name: 'Tokyo Night',    desc: 'Developer Twilight',    dot: '#bb9af7', bg: '#1a1b26' },
+      { id: 'oled',        name: 'Pure OLED',      desc: '100% True Black',       dot: '#00f0ff', bg: '#000000' }
+    ];
+
+    var PALETTE_MAP = {};
+    PALETTES.forEach(function(p) { PALETTE_MAP[p.id] = p; });
+
     function getSavedTheme() {
       try {
         var t = localStorage.getItem(MAIN_THEME_KEY) || localStorage.getItem(CANVAS_THEME_KEY) || localStorage.getItem(BG_PREF_KEY);
-        if (t === 'light' || t === 'dark') return t;
+        if (t && PALETTE_MAP[t]) return t;
       } catch (e) {}
-      if (document.documentElement && document.documentElement.dataset && (document.documentElement.dataset.theme === 'light' || document.documentElement.dataset.theme === 'dark')) {
+      if (document.documentElement && document.documentElement.dataset && PALETTE_MAP[document.documentElement.dataset.theme]) {
         return document.documentElement.dataset.theme;
       }
-      if (document.body && document.body.classList.contains('pnq-dark')) return 'dark';
       return 'dark'; // AzamLabs default
     }
 
     function applyTheme(theme, persist) {
-      var isDark = (theme === 'dark');
+      if (!PALETTE_MAP[theme]) theme = 'dark';
+      var p = PALETTE_MAP[theme];
+
       if (document.documentElement) {
         document.documentElement.dataset.theme = theme;
         document.documentElement.setAttribute('data-theme', theme);
       }
       if (document.body) {
-        document.body.classList.toggle('pnq-dark', isDark);
-        document.body.classList.toggle('pnq-light', !isDark);
+        PALETTES.forEach(function(item) {
+          document.body.classList.remove('pnq-' + item.id);
+        });
+        document.body.classList.add('pnq-' + theme);
+        if (theme === 'light') {
+          document.body.classList.remove('pnq-dark');
+          document.body.classList.add('pnq-light');
+        } else {
+          document.body.classList.remove('pnq-light');
+          document.body.classList.add('pnq-dark');
+        }
       }
+
       if (persist) {
         try {
           localStorage.setItem(MAIN_THEME_KEY, theme);
@@ -2533,62 +2621,99 @@
           localStorage.setItem(BG_PREF_KEY, theme);
         } catch (e) {}
       }
-      updateAllThemeButtons(theme);
-    }
 
-    function updateAllThemeButtons(theme) {
-      var isDark = (theme === 'dark');
-      var toggleBtn = document.getElementById('pnq-btn-theme-toggle');
-      if (toggleBtn) {
-        toggleBtn.setAttribute('data-theme', theme);
-        toggleBtn.title = isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme';
-        if (isDark) {
-          toggleBtn.innerHTML = '<i class="fa fa-sun-o" style="color:#fbbf24;font-size:13px;"></i> <span>Light Mode</span>';
-          toggleBtn.style.background = 'rgba(251, 191, 36, 0.12)';
-          toggleBtn.style.borderColor = 'rgba(251, 191, 36, 0.3)';
-          toggleBtn.style.color = '#fbbf24';
-        } else {
-          toggleBtn.innerHTML = '<i class="fa fa-moon-o" style="color:#2563eb;font-size:13px;"></i> <span>Dark Mode</span>';
-          toggleBtn.style.background = 'rgba(37, 99, 235, 0.08)';
-          toggleBtn.style.borderColor = 'rgba(37, 99, 235, 0.25)';
-          toggleBtn.style.color = '#2563eb';
-        }
-      }
-
-      document.querySelectorAll('[data-action="theme"]').forEach(function(b) {
-        var lbl = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-        b.title = lbl;
-        b.setAttribute('aria-label', lbl);
-        var i = b.querySelector('.fa');
-        if (i) i.className = 'fa ' + (isDark ? 'fa-sun-o' : 'fa-moon-o');
-      });
-
-      var darkCheckbox = document.getElementById('body_dark_mode');
-      if (darkCheckbox && darkCheckbox.checked !== isDark) {
-        darkCheckbox.checked = isDark;
-      }
-    }
-
-    function toggleTheme() {
-      var current = getSavedTheme();
-      var next = (current === 'dark') ? 'light' : 'dark';
-      var flowToggle = document.querySelector('#pnq-flow-theme a');
-      if (flowToggle) {
-        var flowIsDark = document.body.classList.contains('pnq-dark');
-        if ((next === 'dark' && !flowIsDark) || (next === 'light' && flowIsDark)) {
-          try { flowToggle.click(); } catch (e) {}
-        }
-      }
-      applyTheme(next, true);
-      azToast('Theme: Switched to ' + (next === 'dark' ? 'Dark' : 'Light') + ' Mode', 'info');
+      // Realtime CanvasFlow instant styling
       try {
-        window.dispatchEvent(new CustomEvent('pnq:theme-change', { detail: { theme: next } }));
+        var bgSvg = document.querySelector('svg.svelte-flow__background');
+        if (bgSvg) {
+          bgSvg.style.backgroundColor = p.bg;
+          var dots = bgSvg.querySelectorAll('.svelte-flow__background-pattern');
+          dots.forEach(function(d) {
+            d.style.fill = p.dot;
+            d.setAttribute('fill', p.dot);
+          });
+        }
+        var flowEl = document.querySelector('.pnq-canvas-flow');
+        if (flowEl) flowEl.style.backgroundColor = p.bg;
+        var svelteCont = document.querySelector('.svelte-flow__container');
+        if (svelteCont) svelteCont.style.backgroundColor = p.bg;
+      } catch (e) {}
+
+      updateAllThemeButtons(theme);
+
+      try {
+        window.dispatchEvent(new CustomEvent('pnq:theme-change', { detail: { theme: theme, palette: p } }));
       } catch (e) {}
     }
 
+    function updateAllThemeButtons(theme) {
+      var p = PALETTE_MAP[theme] || PALETTES[0];
+      var pickerBtn = document.getElementById('pnq-btn-theme-picker');
+      if (pickerBtn) {
+        var dot = pickerBtn.querySelector('.pnq-theme-dot');
+        if (dot) {
+          dot.style.background = p.dot;
+          dot.style.boxShadow = '0 0 6px ' + p.dot;
+        }
+        var lbl = pickerBtn.querySelector('.pnq-theme-label');
+        if (lbl) {
+          lbl.textContent = 'Theme: ' + p.name;
+        }
+      }
+
+      // Update dropdown checkmarks
+      document.querySelectorAll('#pnq-theme-dropdown .pnq-theme-item').forEach(function(item) {
+        var choiceId = item.getAttribute('data-theme-choice');
+        var check = item.querySelector('.pnq-theme-check');
+        var isCurrent = (choiceId === theme);
+        if (check) check.style.display = isCurrent ? 'inline-block' : 'none';
+        item.style.backgroundColor = isCurrent ? 'var(--pnq-accent-soft, rgba(59,130,246,0.12))' : 'transparent';
+      });
+
+      // Update topbar header buttons on /main/
+      document.querySelectorAll('[data-action="theme"]').forEach(function(b) {
+        var isLight = (theme === 'light');
+        var lbl = 'Theme: ' + p.name + ' (Click to cycle themes)';
+        b.title = lbl;
+        b.setAttribute('aria-label', lbl);
+        var i = b.querySelector('.fa');
+        if (i) i.className = 'fa ' + (isLight ? 'fa-sun-o' : 'fa-moon-o');
+      });
+
+      var darkCheckbox = document.getElementById('body_dark_mode');
+      if (darkCheckbox) {
+        darkCheckbox.checked = (theme !== 'light');
+      }
+    }
+
+    function cycleTheme() {
+      var current = getSavedTheme();
+      var currentIndex = 0;
+      for (var i = 0; i < PALETTES.length; i++) {
+        if (PALETTES[i].id === current) {
+          currentIndex = i;
+          break;
+        }
+      }
+      var next = PALETTES[(currentIndex + 1) % PALETTES.length];
+      applyTheme(next.id, true);
+      azToast('Theme: Switched to ' + next.name, 'info');
+    }
+
+    // Attach cycle on any data-action="theme" click
+    document.querySelectorAll('[data-action="theme"]').forEach(function(b) {
+      if (!b.getAttribute('data-az-theme-bound')) {
+        b.setAttribute('data-az-theme-bound', 'true');
+        b.addEventListener('click', function(e) {
+          e.preventDefault();
+          cycleTheme();
+        });
+      }
+    });
+
     window.addEventListener('storage', function(e) {
       if (e.key === MAIN_THEME_KEY || e.key === CANVAS_THEME_KEY) {
-        if (e.newValue === 'light' || e.newValue === 'dark') {
+        if (e.newValue && PALETTE_MAP[e.newValue]) {
           applyTheme(e.newValue, false);
         }
       }
@@ -2597,9 +2722,11 @@
     applyTheme(getSavedTheme(), false);
 
     window.azamThemeEngine = {
+      palettes: PALETTES,
       getTheme: getSavedTheme,
       setTheme: function(t) { applyTheme(t, true); },
-      toggle: toggleTheme,
+      cycle: cycleTheme,
+      toggle: cycleTheme,
       updateButtons: function() { updateAllThemeButtons(getSavedTheme()); }
     };
   }

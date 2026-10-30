@@ -61,11 +61,20 @@ def probe_plan_and_ledger():
     plan_path = None
     for cand in [
         os.path.join(BASE_DIR, "docs", "UPDATE_CHECK_PLAN.md"),
+        os.path.join(BASE_DIR, "docs", "reports", "UPDATE_CHECK_PLAN.md"),
+        os.path.join(BASE_DIR, "docs", "reports", "update-Docs", "UPDATE_CHECK_PLAN.md"),
+        os.path.join(BASE_DIR, "docs", "update-docs", "UPDATE_CHECK_PLAN.md"),
         os.path.join(BASE_DIR, "docs", "3_MONTHS_UPDATE_CHECK_PLAN.md"),
         "/opt/azambasha/docs/UPDATE_CHECK_PLAN.md",
+        "/opt/azambasha/docs/reports/UPDATE_CHECK_PLAN.md",
+        "/opt/azambasha/docs/reports/update-Docs/UPDATE_CHECK_PLAN.md",
+        "/opt/azambasha/docs/update-docs/UPDATE_CHECK_PLAN.md",
         "/opt/azamlabs/EMULATOR/AzamLabs/docs/UPDATE_CHECK_PLAN.md",
         "/opt/azamlabs/AzamLabs/docs/UPDATE_CHECK_PLAN.md",
-        "/opt/unetlab/docs/UPDATE_CHECK_PLAN.md"
+        "/opt/unetlab/docs/UPDATE_CHECK_PLAN.md",
+        "/opt/unetlab/docs/reports/UPDATE_CHECK_PLAN.md",
+        "/opt/unetlab/docs/reports/update-Docs/UPDATE_CHECK_PLAN.md",
+        "/opt/unetlab/docs/update-docs/UPDATE_CHECK_PLAN.md"
     ]:
         if os.path.isfile(cand):
             plan_path = cand
@@ -268,11 +277,20 @@ def probe_docker_subsystem():
     plan_path = None
     for cand in [
         os.path.join(BASE_DIR, "docs", "UPDATE_CHECK_PLAN.md"),
+        os.path.join(BASE_DIR, "docs", "reports", "UPDATE_CHECK_PLAN.md"),
+        os.path.join(BASE_DIR, "docs", "reports", "update-Docs", "UPDATE_CHECK_PLAN.md"),
+        os.path.join(BASE_DIR, "docs", "update-docs", "UPDATE_CHECK_PLAN.md"),
         os.path.join(BASE_DIR, "docs", "3_MONTHS_UPDATE_CHECK_PLAN.md"),
         "/opt/azambasha/docs/UPDATE_CHECK_PLAN.md",
+        "/opt/azambasha/docs/reports/UPDATE_CHECK_PLAN.md",
+        "/opt/azambasha/docs/reports/update-Docs/UPDATE_CHECK_PLAN.md",
+        "/opt/azambasha/docs/update-docs/UPDATE_CHECK_PLAN.md",
         "/opt/azamlabs/EMULATOR/AzamLabs/docs/UPDATE_CHECK_PLAN.md",
         "/opt/azamlabs/AzamLabs/docs/UPDATE_CHECK_PLAN.md",
-        "/opt/unetlab/docs/UPDATE_CHECK_PLAN.md"
+        "/opt/unetlab/docs/UPDATE_CHECK_PLAN.md",
+        "/opt/unetlab/docs/reports/UPDATE_CHECK_PLAN.md",
+        "/opt/unetlab/docs/reports/update-Docs/UPDATE_CHECK_PLAN.md",
+        "/opt/unetlab/docs/update-docs/UPDATE_CHECK_PLAN.md"
     ]:
         if os.path.isfile(cand):
             plan_path = cand

@@ -76,9 +76,14 @@ if [ "$TARGET_INPUT" = "auto" ] || [ -z "$TARGET_INPUT" ]; then
     done
     if [ -z "$BASE_DETECT" ]; then
         for doc_candidate in \
+            "${REPO_ROOT}/docs/reports/UPDATE_CHECK_PLAN.md" \
+            "${REPO_ROOT}/docs/reports/update-Docs/UPDATE_CHECK_PLAN.md" \
             "${REPO_ROOT}/docs/UPDATE_CHECK_PLAN.md" \
+            "/opt/azamlabs/docs/reports/UPDATE_CHECK_PLAN.md" \
             "/opt/azamlabs/docs/UPDATE_CHECK_PLAN.md" \
+            "/opt/azambasha/docs/reports/UPDATE_CHECK_PLAN.md" \
             "/opt/azambasha/docs/UPDATE_CHECK_PLAN.md" \
+            "/opt/unetlab/docs/reports/UPDATE_CHECK_PLAN.md" \
             "/opt/unetlab/docs/UPDATE_CHECK_PLAN.md"; do
             if [ -f "$doc_candidate" ]; then
                 BASE_DETECT="$(grep -oP '(?<=Implemented Package Version\*\*: `)[^`]+' "$doc_candidate" 2>/dev/null | head -n1 || true)"

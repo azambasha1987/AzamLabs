@@ -81,11 +81,11 @@ flowchart TD
 ### 📋 Phase 1: High-Speed Dataplane Telemetry & Sparkline API
 **Objective**: Build a zero-disk-write in-memory sliding window ring buffer in Python to stream real-time Rx/Tx throughput and drop metrics per link to the frontend.
 
-- [ ] **1.1 Extend [`scripts/azambasha-dataplane-stats.py`](file:///e:/AzamLabs/scripts/azambasha-dataplane-stats.py)**:
+- [x] **1.1 Extend [`scripts/azambasha-dataplane-stats.py`](file:///e:/AzamLabs/scripts/azambasha-dataplane-stats.py)**:
   - Implement a `TelemetryRingBuffer` class holding a 60-entry circular queue (1-second intervals) for every active interface (`vnet*`, `vunl*`, `pnet*`).
   - Calculate `delta_rx_bps`, `delta_tx_bps`, `delta_rx_pps`, `delta_tx_pps`, and error/drop deltas.
   - Expose thread-safe snapshot method `get_sparkline(iface_name)`.
-- [ ] **1.2 Register REST API in [`scripts/azambasha-ops-api.py`](file:///e:/AzamLabs/scripts/azambasha-ops-api.py)**:
+- [x] **1.2 Register REST API in [`scripts/azambasha-ops-api.py`](file:///e:/AzamLabs/scripts/azambasha-ops-api.py)**:
   - Add endpoint `/azam-ops/api/dataplane-sparkline?iface=<name>&seconds=60`.
   - Return compact JSON:
     ```json
@@ -100,21 +100,21 @@ flowchart TD
       "errors": 0
     }
     ```
-- [ ] **1.3 Test Performance**: Assert API latency < 5ms and CPU overhead < 0.2%.
+- [x] **1.3 Test Performance**: Assert API latency < 5ms and CPU overhead < 0.2%.
 
 ---
 
 ### 📋 Phase 2: In-Canvas Docked Terminal Console Drawer
 **Objective**: Replace separate browser pop-ups with an integrated, resizable multi-pane terminal dock inside the lab canvas.
 
-- [ ] **2.1 Build In-Canvas Dock Container** (`html/themes/default/js/azamlabs-docked-console.js`):
+- [x] **2.1 Build In-Canvas Dock Container** (`html/themes/default/js/azamlabs-docked-console.js`):
   - Inject `#az-docked-console` at the bottom of the canvas.
   - Implement vertical drag-to-resize handle (minimum 180px, maximum 85vh).
   - Implement header controls:
     - **Tab Bar**: Draggable, closeable tabs with device icons and status pips.
     - **Layout Toggles**: `[ 1x Single ]`, `[ 2x Dual Split 50/50 ]`, `[ 4x Quad Grid 2x2 ]`.
     - **Window Actions**: Minimize (collapse to 36px bottom bar), Maximize (fill canvas), Detach (pop-out).
-- [ ] **2.2 Hook [`html/azam-ops/azamlabs-sequenced-console.js`](file:///e:/AzamLabs/html/azam-ops/azamlabs-sequenced-console.js)**:
+- [x] **2.2 Hook [`html/azam-ops/azamlabs-sequenced-console.js`](file:///e:/AzamLabs/html/azam-ops/azamlabs-sequenced-console.js)**:
   - Add user preference check: `localStorage.getItem('az_console_mode') || 'docked'` (options: `docked`, `tabs`, `native`).
   - When in `docked` mode, divert `openSingleConsole(node)` to create/focus a tab inside `#az-docked-console` instead of calling `window.open(url, '_blank')`.
   - Support drag-and-drop between panes (drag tab from Left Pane to Right Pane in split mode).
@@ -124,7 +124,7 @@ flowchart TD
 ### 📋 Phase 3: Real-Time Network CLI Syntax Parser
 **Objective**: Apply color formatting to IP addresses, interfaces, and operational states directly inside web consoles.
 
-- [ ] **3.1 Create Syntax Tokenizer Engine** (`html/themes/default/js/azam-cli-syntax.js`):
+- [x] **3.1 Create Syntax Tokenizer Engine** (`html/themes/default/js/azam-cli-syntax.js`):
   - Pre-compile regex token rules:
     - **IPv4**: `\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:3[0-2]|[12]?[0-9]))?\b` $\rightarrow$ Electric Cyan (`#38bdf8`)
     - **IPv6**: `\b([0-9a-fA-F]{1,4}:){1,7}:?([0-9a-fA-F]{1,4})?\b` $\rightarrow$ Sky Blue (`#60a5fa`)
@@ -132,7 +132,7 @@ flowchart TD
     - **Up/Healthy States**: `\b(up|UP|Established|FULL|Active|Connected|Success|200 OK|OK)\b` $\rightarrow$ Emerald Green (`#22c55e`)
     - **Down/Error States**: `\b(down|DOWN|administratively down|Admin Down|Failed|Error|Drop|Reset|Idle|Active)\b` $\rightarrow$ Crimson Red (`#ef4444`)
     - **Protocols/ASNs**: `\b(OSPF|BGP|EIGRP|IS-IS|MPLS|LDP|VXLAN|EVPN|AS \d+)\b` $\rightarrow$ Amber (`#f59e0b`)
-- [ ] **3.2 Integrate with Terminal Stream**:
+- [x] **3.2 Integrate with Terminal Stream**:
   - Hook terminal output before rendering.
   - Transform matching tokens into ANSI escape codes (`\x1b[38;2;R;G;Bm`).
   - Add user toggle button in console header: `[ 🎨 Syntax: ON/OFF ]` and font-size controls (`12px`, `14px`, `16px`).
@@ -142,15 +142,15 @@ flowchart TD
 ### 📋 Phase 4: Canvas Hover Sparkline & HUD Integration
 **Objective**: Display interactive micro-graphs on link hover or node inspection.
 
-- [ ] **4.1 Canvas Link & Node Hover Listeners** ([`html/azam-ops/azamlabs-features.js`](file:///e:/AzamLabs/html/azam-ops/azamlabs-features.js)):
+- [x] **4.1 Canvas Link & Node Hover Listeners** ([`html/azam-ops/azamlabs-features.js`](file:///e:/AzamLabs/html/azam-ops/azamlabs-features.js)):
   - Attach `mouseenter` / `mouseleave` debounced listeners to canvas SVG link paths and node icons.
   - Dynamically construct floating HUD element `#az-link-hud`.
-- [ ] **4.2 Lightweight SVG Bezier Curve Generator**:
+- [x] **4.2 Lightweight SVG Bezier Curve Generator**:
   - Convert 60-second throughput array into smooth SVG path coordinates:
     $$\text{path} = \text{M } x_0,y_0 \text{ C } x_{c1},y_{c1} \dots$$
   - Fill with glowing gradient (Green for Tx, Cyan for Rx).
   - Display current metrics: `Tx: 48.0 Kbps | Rx: 14.5 Kbps | Drops: 0`.
-- [ ] **4.3 Pin-to-Canvas Functionality**:
+- [x] **4.3 Pin-to-Canvas Functionality**:
   - Right-click link $\rightarrow$ "Pin Sparkline" keeps the mini-graph pinned permanently to the link on the canvas during lab runs.
 
 ---
@@ -158,14 +158,14 @@ flowchart TD
 ### 📋 Phase 5: Cluster Deployment, Testing & Verification
 **Objective**: Validate functionality across test VMs and ensure 100% future-install immunity.
 
-- [ ] **5.1 Automated Syntax & Non-Regression Suite**:
+- [x] **5.1 Automated Syntax & Non-Regression Suite**:
   - Run [`tests/test_javascript_syntax.py`](file:///e:/AzamLabs/tests/test_javascript_syntax.py) to assert 0 bracket mismatches and 0 unclosed IIFEs.
   - Run full `pytest tests/` (36 tests) and [`scripts/azambasha-dry-test.py`](file:///e:/AzamLabs/scripts/azambasha-dry-test.py) (10/10 probes).
-- [ ] **5.2 Test VM Fleet Deployment**:
+- [x] **5.2 Test VM Fleet Deployment**:
   - Deploy to `R9-Master` (`192.168.1.23`) with `--install-features --force`.
   - Deploy to `R9-SAT` (`192.168.1.18`).
   - Verify live V8 syntax check via remote SSH: `node -c`.
-- [ ] **5.3 Installer Pipeline Audit**:
+- [x] **5.3 Installer Pipeline Audit**:
   - Verify [`install.sh`](file:///e:/AzamLabs/install.sh) and [`scripts/azambasha-install-azam-features.sh`](file:///e:/AzamLabs/scripts/azambasha-install-azam-features.sh) deploy all new scripts with cache-busting timestamps.
 
 ---

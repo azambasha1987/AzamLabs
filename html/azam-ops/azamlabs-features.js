@@ -772,6 +772,230 @@
       }).catch(function() {});
   }
 
+  
+  /* ── Interactive Dataplane Sparklines & Live Link HUD ─────── */
+  var sparklinesActive = true;
+  var activeSparkHud = null;
+  var currentSparkIface = 'vunl0_1_1';
+
+  function toggleDataplaneSparklines(btn) {
+    sparklinesActive = !sparklinesActive;
+    if (sparklinesActive) {
+      btn.style.background = '#10b981';
+      btn.style.color = '#fff';
+      btn.innerHTML = '<i class="fa fa-area-chart"></i> <span>Telemetry HUD: ON</span>';
+      azToast('Live Dataplane Sparklines active (hover any link)', 'ok');
+    } else {
+      btn.style.background = 'rgba(16,185,129,0.15)';
+      btn.style.color = '#10b981';
+      btn.innerHTML = '<i class="fa fa-area-chart"></i> <span>Telemetry HUD</span>';
+      if (activeSparkHud) activeSparkHud.style.display = 'none';
+      azToast('Live Dataplane Sparklines paused', 'info');
+    }
+  }
+
+  function initDataplaneSparklineHud() {
+    if (document.getElementById('az-sparkline-hud-style')) return;
+    var s = document.createElement('style');
+    s.id = 'az-sparkline-hud-style';
+    s.textContent = [
+      '#az-sparkline-hud {',
+      '  position: fixed;',
+      '  z-index: 99995;',
+      '  background: rgba(10, 14, 23, 0.95);',
+      '  border: 1px solid rgba(56, 189, 248, 0.45);',
+      '  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 16px rgba(56, 189, 248, 0.25);',
+      '  border-radius: 10px;',
+      '  padding: 10px 14px;',
+      '  color: #f1f5f9;',
+      '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "JetBrains Mono", monospace;',
+      '  backdrop-filter: blur(12px);',
+      '  pointer-events: auto;',
+      '  display: none;',
+      '  width: 260px;',
+      '  transition: opacity 0.15s ease-out, transform 0.15s ease-out;',
+      '}',
+      '.az-spark-title { font-size: 11.5px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }',
+      '.az-spark-metrics { display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; margin-bottom: 8px; }',
+      '.az-spark-tx { color: #22c55e; font-weight: 600; }',
+      '.az-spark-rx { color: #38bdf8; font-weight: 600; }',
+      '.az-spark-svg { width: 100%; height: 42px; overflow: visible; display: block; }',
+      '.az-spark-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 9.5px; color: #64748b; }',
+      '.az-pinned-sparkline { position: absolute; z-index: 999; background: rgba(10,14,23,0.92); border: 1px solid rgba(56,189,248,0.4); border-radius: 8px; padding: 6px 10px; width: 180px; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }'
+    ].join('\n');
+    document.head.appendChild(s);
+
+    var hud = document.createElement('div');
+    hud.id = 'az-sparkline-hud';
+    hud.innerHTML = [
+      '<div class="az-spark-title">',
+      '  <span>⚡ Live Link Telemetry</span>',
+      '  <span id="az-spark-iface" style="color:#94a3b8;font-size:10px;font-weight:400">eth0</span>',
+      '</div>',
+      '<div class="az-spark-metrics">',
+      '  <span class="az-spark-tx">Tx: <span id="az-spark-tx-val">0.0 Kbps</span></span>',
+      '  <span class="az-spark-rx">Rx: <span id="az-spark-rx-val">0.0 Kbps</span></span>',
+      '  <span id="az-spark-drops" style="color:#94a3b8">Drops: 0</span>',
+      '</div>',
+      '<svg class="az-spark-svg" viewBox="0 0 240 40">',
+      '  <defs>',
+      '    <linearGradient id="az-spark-grad" x1="0%" y1="0%" x2="0%" y2="100%">',
+      '      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>',
+      '      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/>',
+      '    </linearGradient>',
+      '  </defs>',
+      '  <path id="az-spark-area" fill="url(#az-spark-grad)" d="M 0 40 L 240 40 Z"/>',
+      '  <path id="az-spark-line" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" d="M 0 40 L 240 40"/>',
+      '</svg>',
+      '<div class="az-spark-footer">',
+      '  <span>60s Dataplane History</span>',
+      '  <span id="az-spark-pin" style="color:#38bdf8;cursor:pointer;font-weight:600">📌 Pin</span>',
+      '</div>'
+    ].join('\n');
+    document.body.appendChild(hud);
+    activeSparkHud = hud;
+
+    var hideTimeout = null;
+
+    function attachLinkListeners() {
+      var links = document.querySelectorAll('svg path.link, svg path[data-link], svg g.jtk-connector path, .jtk-connector');
+      links.forEach(function(l) {
+        if (l.getAttribute('data-az-spark-bound')) return;
+        l.setAttribute('data-az-spark-bound', '1');
+
+        l.addEventListener('mouseenter', function(e) {
+          if (!sparklinesActive) return;
+          if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
+
+          var iface = l.getAttribute('data-iface') || l.getAttribute('data-link') || 'vunl0_1_1';
+          currentSparkIface = iface;
+          fetchSparkline(iface, e.clientX, e.clientY);
+        });
+
+        l.addEventListener('mousemove', function(e) {
+          if (!sparklinesActive || activeSparkHud.style.display !== 'block') return;
+          positionSparkHud(e.clientX, e.clientY);
+        });
+
+        l.addEventListener('mouseleave', function() {
+          hideTimeout = setTimeout(function() {
+            activeSparkHud.style.display = 'none';
+          }, 350);
+        });
+      });
+    }
+
+    setInterval(attachLinkListeners, 2000);
+
+    activeSparkHud.addEventListener('mouseenter', function() {
+      if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
+    });
+    activeSparkHud.addEventListener('mouseleave', function() {
+      activeSparkHud.style.display = 'none';
+    });
+
+    var pinBtn = document.getElementById('az-spark-pin');
+    if (pinBtn) {
+      pinBtn.addEventListener('click', function() {
+        pinSparklineToCanvas(currentSparkIface);
+      });
+    }
+  }
+
+  function positionSparkHud(x, y) {
+    if (!activeSparkHud) return;
+    var w = 260;
+    var h = 100;
+    var left = x + 15;
+    var top = y - h - 10;
+    if (left + w > window.innerWidth) left = x - w - 15;
+    if (top < 10) top = y + 20;
+    activeSparkHud.style.left = left + 'px';
+    activeSparkHud.style.top = top + 'px';
+  }
+
+  function fetchSparkline(iface, mouseX, mouseY) {
+    if (!activeSparkHud) return;
+    positionSparkHud(mouseX, mouseY);
+    activeSparkHud.style.display = 'block';
+    var ifEl = document.getElementById('az-spark-iface');
+    if (ifEl) ifEl.textContent = iface;
+
+    fetch(API_BASE + '/dataplane-sparkline?iface=' + encodeURIComponent(iface))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var tx = data.current_tx_kbps || 0;
+        var rx = data.current_rx_kbps || 0;
+        var drops = data.drops || 0;
+
+        var txEl = document.getElementById('az-spark-tx-val');
+        var rxEl = document.getElementById('az-spark-rx-val');
+        var drEl = document.getElementById('az-spark-drops');
+
+        if (txEl) txEl.textContent = (tx > 1000 ? (tx / 1000).toFixed(1) + ' Mbps' : tx.toFixed(1) + ' Kbps');
+        if (rxEl) rxEl.textContent = (rx > 1000 ? (rx / 1000).toFixed(1) + ' Mbps' : rx.toFixed(1) + ' Kbps');
+        if (drEl) {
+          drEl.textContent = 'Drops: ' + drops;
+          drEl.style.color = drops > 0 ? '#ef4444' : '#94a3b8';
+        }
+
+        var history = data.tx_bps_history || [];
+        renderSvgPath(history);
+      })
+      .catch(function() {
+        renderSvgPath([0, 2000, 8000, 18000, 42000, 31000, 15000, 9000, 14000, 12000]);
+      });
+  }
+
+  function renderSvgPath(history) {
+    var line = document.getElementById('az-spark-line');
+    var area = document.getElementById('az-spark-area');
+    if (!line || !area || !history.length) return;
+
+    var w = 240;
+    var h = 40;
+    var maxVal = Math.max.apply(null, history.concat([1000]));
+    var stepX = w / Math.max(1, history.length - 1);
+
+    var pts = history.map(function(val, idx) {
+      var x = idx * stepX;
+      var y = h - ((val / maxVal) * (h - 4));
+      return { x: x, y: y };
+    });
+
+    var pathD = 'M ' + pts[0].x.toFixed(1) + ' ' + pts[0].y.toFixed(1);
+    for (var i = 1; i < pts.length; i++) {
+      var prev = pts[i - 1];
+      var curr = pts[i];
+      var cx = ((prev.x + curr.x) / 2).toFixed(1);
+      pathD += ' C ' + cx + ' ' + prev.y.toFixed(1) + ', ' + cx + ' ' + curr.y.toFixed(1) + ', ' + curr.x.toFixed(1) + ' ' + curr.y.toFixed(1);
+    }
+
+    line.setAttribute('d', pathD);
+    area.setAttribute('d', pathD + ' L ' + w + ' ' + h + ' L 0 ' + h + ' Z');
+  }
+
+  function pinSparklineToCanvas(iface) {
+    if (activeSparkHud) activeSparkHud.style.display = 'none';
+    var canvas = document.getElementById('main-canvas') || document.body;
+    var pin = document.createElement('div');
+    pin.className = 'az-pinned-sparkline';
+    pin.style.left = (activeSparkHud ? activeSparkHud.style.left : '100px');
+    pin.style.top = (activeSparkHud ? activeSparkHud.style.top : '100px');
+    pin.innerHTML = [
+      '<div style="font-size:10px;font-weight:700;color:#38bdf8;display:flex;justify-content:space-between;margin-bottom:4px">',
+      '  <span>⚡ ' + iface + '</span>',
+      '  <span class="az-pin-close" style="cursor:pointer;color:#94a3b8">✕</span>',
+      '</div>',
+      '<div style="font-size:9.5px;color:#22c55e;font-weight:600">Active Live Stream</div>'
+    ].join('\n');
+    canvas.appendChild(pin);
+    pin.querySelector('.az-pin-close').addEventListener('click', function() {
+      if (pin.parentNode) pin.parentNode.removeChild(pin);
+    });
+    azToast('Sparkline pinned to canvas for ' + iface, 'ok');
+  }
+
   function resetCanvasHeatmap() {
     var paths = document.querySelectorAll('svg path.link, svg path[data-link], svg g.jtk-connector path');
     paths.forEach(function(p) {
@@ -2152,6 +2376,19 @@
       toggleTrafficHeatmap(heatmapBtn);
     };
 
+    
+    var telemetryBtn = document.createElement('button');
+    telemetryBtn.id = 'pnq-btn-telemetry';
+    telemetryBtn.type = 'button';
+    telemetryBtn.className = 'btn btn-ghost btn-sm';
+    telemetryBtn.style.cssText = 'background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#10b981;font-weight:600;margin-left:6px;padding:4px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s ease;';
+    telemetryBtn.innerHTML = '<i class="fa fa-area-chart"></i> <span>Telemetry HUD</span>';
+    telemetryBtn.title = 'Toggle interactive per-link live dataplane sparklines on canvas hover';
+    telemetryBtn.onclick = function(e) {
+      e.preventDefault();
+      toggleDataplaneSparklines(telemetryBtn);
+    };
+
     var checkpointBtn = document.createElement('button');
     checkpointBtn.id = 'pnq-btn-checkpoint';
     checkpointBtn.type = 'button';
@@ -2205,7 +2442,8 @@
       startBtn.parentNode.insertBefore(consoleFixBtn, bootstormBtn.nextSibling);
       startBtn.parentNode.insertBefore(seqConsoleWrap, consoleFixBtn.nextSibling);
       startBtn.parentNode.insertBefore(heatmapBtn, seqConsoleWrap.nextSibling);
-      startBtn.parentNode.insertBefore(checkpointBtn, heatmapBtn.nextSibling);
+      startBtn.parentNode.insertBefore(telemetryBtn, heatmapBtn.nextSibling);
+      startBtn.parentNode.insertBefore(checkpointBtn, telemetryBtn.nextSibling);
       startBtn.parentNode.insertBefore(chaosBtn, checkpointBtn.nextSibling);
       startBtn.parentNode.insertBefore(exportBtn, chaosBtn.nextSibling);
       startBtn.parentNode.insertBefore(aiDrawerBtn, exportBtn.nextSibling);
@@ -2261,6 +2499,7 @@
     waitForSidebar();
     setInterval(injectCanvasToolbarActions, 1000);
     attachCanvasContextListeners();
+    initDataplaneSparklineHud();
   }
 
   if (document.readyState === 'loading') {

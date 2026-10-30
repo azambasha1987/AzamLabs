@@ -8,6 +8,7 @@ and streams real-time output via Server-Sent Events (SSE).
 ==============================================================================
 """
 import os, sys, json, subprocess, threading, queue, time, signal, shutil, re
+from collections import deque
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -159,6 +160,130 @@ def get_cluster_stats():
     return stats
 
 
+
+# ---------------------------------------------------------------------------
+# High-Speed Dataplane Telemetry Ring Buffer (Zero Disk Wear, In-Memory)
+# ---------------------------------------------------------------------------
+class DataplaneTelemetryEngine:
+    def __init__(self, history_len=60):
+        self.history_len = history_len
+        self.lock = threading.Lock()
+        self.history = {}  # iface -> deque(maxlen=60) of dicts
+        self.prev_raw = {}
+        self.running = True
+        self.thread = threading.Thread(target=self._worker, daemon=True)
+        self.thread.start()
+
+    def _read_proc_net(self):
+        stats = {}
+        net_dev = "/proc/net/dev"
+        if not os.path.exists(net_dev):
+            return stats
+        try:
+            with open(net_dev, "r") as f:
+                lines = f.readlines()[2:]
+            for line in lines:
+                parts = line.strip().split()
+                if not parts:
+                    continue
+                iface = parts[0].rstrip(":")
+                if not iface.startswith(("vnet", "vunl", "pnet", "eth", "ens", "enp", "eno", "br")):
+                    continue
+                rx_bytes = int(parts[1])
+                rx_packets = int(parts[2])
+                rx_errs = int(parts[3])
+                rx_drop = int(parts[4])
+                tx_bytes = int(parts[9])
+                tx_packets = int(parts[10])
+                tx_errs = int(parts[11])
+                tx_drop = int(parts[12])
+                stats[iface] = {
+                    "rx_bytes": rx_bytes, "rx_packets": rx_packets, "rx_errs": rx_errs, "rx_drop": rx_drop,
+                    "tx_bytes": tx_bytes, "tx_packets": tx_packets, "tx_errs": tx_errs, "tx_drop": tx_drop,
+                    "ts": time.time()
+                }
+        except Exception:
+            pass
+        return stats
+
+    def _worker(self):
+        while self.running:
+            try:
+                curr = self._read_proc_net()
+                now = time.time()
+                with self.lock:
+                    for iface, c in curr.items():
+                        if iface not in self.history:
+                            self.history[iface] = deque(maxlen=self.history_len)
+                        
+                        p = self.prev_raw.get(iface)
+                        if p:
+                            dt = max(0.001, c["ts"] - p["ts"])
+                            rx_bps = max(0, int(((c["rx_bytes"] - p["rx_bytes"]) * 8) / dt))
+                            tx_bps = max(0, int(((c["tx_bytes"] - p["tx_bytes"]) * 8) / dt))
+                            rx_pps = max(0, int((c["rx_packets"] - p["rx_packets"]) / dt))
+                            tx_pps = max(0, int((c["tx_packets"] - p["tx_packets"]) / dt))
+                            drops = (c["rx_drop"] - p["rx_drop"]) + (c["tx_drop"] - p["tx_drop"])
+                            errs = (c["rx_errs"] - p["rx_errs"]) + (c["tx_errs"] - p["tx_errs"])
+                        else:
+                            rx_bps, tx_bps, rx_pps, tx_pps, drops, errs = 0, 0, 0, 0, 0, 0
+
+                        point = {
+                            "t": int(now),
+                            "rx_bps": rx_bps,
+                            "tx_bps": tx_bps,
+                            "rx_pps": rx_pps,
+                            "tx_pps": tx_pps,
+                            "drops": max(0, drops),
+                            "errs": max(0, errs)
+                        }
+                        self.history[iface].append(point)
+                    self.prev_raw = curr
+            except Exception:
+                pass
+            time.sleep(1.0)
+
+    def get_sparkline(self, iface):
+        with self.lock:
+            if iface and iface in self.history:
+                pts = list(self.history[iface])
+                last = pts[-1] if pts else {}
+                return {
+                    "status": "success",
+                    "iface": iface,
+                    "history_seconds": len(pts),
+                    "rx_bps_history": [p["rx_bps"] for p in pts],
+                    "tx_bps_history": [p["tx_bps"] for p in pts],
+                    "rx_pps_history": [p["rx_pps"] for p in pts],
+                    "tx_pps_history": [p["tx_pps"] for p in pts],
+                    "current_rx_kbps": round(last.get("rx_bps", 0) / 1000, 1),
+                    "current_tx_kbps": round(last.get("tx_bps", 0) / 1000, 1),
+                    "current_rx_pps": last.get("rx_pps", 0),
+                    "current_tx_pps": last.get("tx_pps", 0),
+                    "drops": sum(p["drops"] for p in pts),
+                    "errors": sum(p["errs"] for p in pts)
+                }
+            active_ifaces = list(self.history.keys())
+            matched = [i for i in active_ifaces if iface and (iface in i or i in iface)]
+            if matched:
+                return self.get_sparkline(matched[0])
+
+            return {
+                "status": "idle",
+                "iface": iface or "all",
+                "active_interfaces": active_ifaces[:10],
+                "history_seconds": 60,
+                "rx_bps_history": [0]*60,
+                "tx_bps_history": [0]*60,
+                "current_rx_kbps": 0.0,
+                "current_tx_kbps": 0.0,
+                "drops": 0,
+                "errors": 0
+            }
+
+TELEMETRY_ENGINE = DataplaneTelemetryEngine(history_len=60)
+
+
 def stream_command(cmd: list, out_queue: queue.Queue):
     """Run cmd in subprocess and push lines to out_queue."""
     try:
@@ -198,7 +323,12 @@ class AzamOpsHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
 
-        if parsed.path == "/azam-ops/api/stats":
+        if parsed.path == "/azam-ops/api/dataplane-sparkline":
+            iface = params.get("iface", [""])[0]
+            self.reply_json(TELEMETRY_ENGINE.get_sparkline(iface))
+
+
+        elif parsed.path == "/azam-ops/api/stats":
             self.reply_json(get_cluster_stats())
 
         elif parsed.path == "/azam-ops/api/topology-log":

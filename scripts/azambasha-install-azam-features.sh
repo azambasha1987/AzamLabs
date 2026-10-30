@@ -216,24 +216,25 @@ fi
 echo -e "${CYAN}[5/7]${RESET} Installing Lab Canvas sidebar integration…"
 CANVAS_SRC="${AZAM_DIR}/html/azam-ops/azamlabs-features.js"
 SEQ_SRC="${AZAM_DIR}/html/azam-ops/azamlabs-sequenced-console.js"
-if [ -f "${CANVAS_SRC}" ]; then
-    cp -f "${CANVAS_SRC}" "${THEME_JS}/azamlabs-features.js"
-    echo -e "  ${GREEN}[✔]${RESET} Copied azamlabs-features.js → ${THEME_JS}/"
-fi
-if [ -f "${SEQ_SRC}" ]; then
-    cp -f "${SEQ_SRC}" "${THEME_JS}/azamlabs-sequenced-console.js"
-    echo -e "  ${GREEN}[✔]${RESET} Copied azamlabs-sequenced-console.js → ${THEME_JS}/"
-fi
+DOCK_SRC="${AZAM_DIR}/html/azam-ops/azamlabs-docked-console.js"
+SYNTAX_SRC="${AZAM_DIR}/html/azam-ops/azam-cli-syntax.js"
+
+for src in "${CANVAS_SRC}" "${SEQ_SRC}" "${DOCK_SRC}" "${SYNTAX_SRC}"; do
+    if [ -f "${src}" ]; then
+        cp -f "${src}" "${THEME_JS}/$(basename "${src}")"
+        echo -e "  ${GREEN}[✔]${RESET} Copied $(basename "${src}") → ${THEME_JS}/"
+    fi
+done
 
 CACHE_TS="$(date +%s)"
-for js_file in azamlabs-features.js azamlabs-sequenced-console.js; do
+for js_file in azamlabs-features.js azamlabs-sequenced-console.js azamlabs-docked-console.js azam-cli-syntax.js; do
     if grep -q "$js_file" "${THEME_INDEX}"; then
-        sed -i "s|/themes/default/js/${js_file}[^\"]*|/themes/default/js/${js_file}?v=${CACHE_TS}|g" "${THEME_INDEX}" 2>/dev/null || true
+        sed -i "s|/themes/default/js/${js_file}[^"]*|/themes/default/js/${js_file}?v=${CACHE_TS}|g" "${THEME_INDEX}" 2>/dev/null || true
     else
         sed -i "/<\/body>/i <script src=\"/themes/default/js/${js_file}?v=${CACHE_TS}\"></script>" "${THEME_INDEX}" 2>/dev/null || true
     fi
 done
-echo -e "  ${GREEN}[✔]${RESET} Successfully injected features and sequenced console scripts into Lab Canvas."
+echo -e "  ${GREEN}[✔]${RESET} Successfully injected features, sequenced console, docked console, and CLI syntax scripts into Lab Canvas."
 
 # ── 5b. Install Standalone Azam-Ops Dashboard ────────────────────────────────
 mkdir -p "${PNET_HTML}/azam-ops"

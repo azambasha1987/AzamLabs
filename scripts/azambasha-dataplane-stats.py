@@ -119,6 +119,26 @@ def format_bytes(n):
         return f"{n / 1_000:.2f} KB"
     return f"{n} B"
 
+
+def get_single_sparkline(target_iface=None):
+    from collections import deque
+    curr = read_interface_stats()
+    res = {}
+    for iface, data in curr.items():
+        if target_iface and target_iface != iface and target_iface not in iface:
+            continue
+        res[iface] = {
+            "rx_bytes": data["rx_bytes"],
+            "tx_bytes": data["tx_bytes"],
+            "rx_packets": data["rx_packets"],
+            "tx_packets": data["tx_packets"],
+            "drops": data["rx_drops"] + data["tx_drops"],
+            "errors": data["rx_errors"] + data["tx_errors"],
+            "state": data["state"],
+            "mtu": data["mtu"]
+        }
+    return res
+
 def run_live_dashboard():
     prev = read_interface_stats()
     time.sleep(1)
@@ -193,6 +213,9 @@ if __name__ == "__main__":
     if "--json" in sys.argv:
         curr = read_interface_stats()
         print(json.dumps(curr, indent=2))
+    elif "--sparkline" in sys.argv:
+        target = sys.argv[sys.argv.index("--sparkline") + 1] if len(sys.argv) > sys.argv.index("--sparkline") + 1 else None
+        print(json.dumps(get_single_sparkline(target), indent=2))
     elif "--server" in sys.argv:
         port = 9105
         if len(sys.argv) > 2 and sys.argv[2].isdigit():

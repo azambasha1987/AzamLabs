@@ -237,6 +237,10 @@
         if (url.indexOf('http') === -1 && url.indexOf('/html5') === -1) {
           url = '/html5/#/client/' + btoa(node.id || '1') + '?token=' + (window.sessionToken || '');
         }
+        if (window.azamDockedConsole && typeof window.azamDockedConsole.isEnabled === 'function' && window.azamDockedConsole.isEnabled()) {
+          window.azamDockedConsole.openSession(node, url, nodeName);
+          return;
+        }
         window.open(url, '_blank');
       } else {
         // Native Client (SecureCRT / PuTTY / Windows Terminal)

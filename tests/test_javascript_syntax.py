@@ -6,10 +6,15 @@ import pytest
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAIN_JS = os.path.join(BASE_DIR, "html", "main", "azam-features.js")
 CANVAS_JS = os.path.join(BASE_DIR, "html", "azam-ops", "azamlabs-features.js")
+DOCK_JS = os.path.join(BASE_DIR, "html", "azam-ops", "azamlabs-docked-console.js")
+SEQ_JS = os.path.join(BASE_DIR, "html", "azam-ops", "azamlabs-sequenced-console.js")
+SYNTAX_JS = os.path.join(BASE_DIR, "html", "azam-ops", "azam-cli-syntax.js")
+
+ALL_JS_FILES = [MAIN_JS, CANVAS_JS, DOCK_JS, SEQ_JS, SYNTAX_JS]
 
 def test_javascript_files_exist():
-    assert os.path.isfile(MAIN_JS), f"Main JS not found: {MAIN_JS}"
-    assert os.path.isfile(CANVAS_JS), f"Canvas JS not found: {CANVAS_JS}"
+    for jf in ALL_JS_FILES:
+        assert os.path.isfile(jf), f"JS file not found: {jf}"
 
 def test_app_register_hook_intact():
     with open(MAIN_JS, "r", encoding="utf-8") as f:
@@ -20,7 +25,7 @@ def test_app_register_hook_intact():
 
 def test_no_dangling_trailing_operators():
     # Detect accidental dangling trailing '+' before statement boundaries
-    for js_path in [MAIN_JS, CANVAS_JS]:
+    for js_path in ALL_JS_FILES:
         with open(js_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         for idx, line in enumerate(lines[:-1]):
@@ -37,7 +42,7 @@ def test_no_dangling_trailing_operators():
                     pytest.fail(f"Dangling trailing '+' operator at {os.path.basename(js_path)}:{idx+1} before statement: {next_line}")
 
 def test_iife_closures_balanced():
-    for js_path in [MAIN_JS, CANVAS_JS]:
+    for js_path in ALL_JS_FILES:
         with open(js_path, "r", encoding="utf-8") as f:
             content = f.read()
         
@@ -88,9 +93,17 @@ def test_iife_closures_balanced():
                 if prev and prev[-1] in ('(', '=', ':', ',', '[', '!', '&', '|', '?'):
                     # scan regex
                     i += 1
-                    while i < n and content[i] != '/':
+                    in_cc = False
+                    while i < n:
                         if content[i] == '\\':
-                            i += 1
+                            i += 2
+                            continue
+                        if content[i] == '[':
+                            in_cc = True
+                        elif content[i] == ']':
+                            in_cc = False
+                        elif content[i] == '/' and not in_cc:
+                            break
                         i += 1
                     i += 1
                     continue
@@ -110,7 +123,7 @@ def test_node_syntax_check_if_available():
     node_cmd = shutil.which("node")
     if not node_cmd:
         pytest.skip("node.js not installed on local host; balance tests passed")
-    for js_path in [MAIN_JS, CANVAS_JS]:
+    for js_path in ALL_JS_FILES:
         res = subprocess.run([node_cmd, "-c", js_path], capture_output=True, text=True)
         assert res.returncode == 0, f"node -c failed on {js_path}: {res.stderr}"
 

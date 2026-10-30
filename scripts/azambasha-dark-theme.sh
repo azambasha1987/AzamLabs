@@ -24,8 +24,7 @@ echo "============================================================"
 # Ensure Target CSS Directories exist
 mkdir -p /opt/unetlab/html/themes/default/css \
          /opt/unetlab/html/main/css \
-         /opt/unetlab/html/assets-common/css \
-         /opt/unetlab/html/login 2>/dev/null || true
+         /opt/unetlab/html/assets-common/css 2>/dev/null || true
 
 DARK_CSS="/opt/unetlab/html/themes/default/css/azambasha-dark.css"
 
@@ -595,41 +594,26 @@ html:not([data-theme="dark"]) body:not(.pnq-dark) .modal-footer {
   border-top: 1px solid #e2e8f0 !important;
 }
 
-/* --------------------------------------------------------------------------
-   5. UNIFIED LOGIN & BRANDING
-   -------------------------------------------------------------------------- */
-.login-wrap {
-  background-color: #07080c !important;
-}
-.login-card {
-  background-color: #0f1117 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
-}
-.brand-text {
-  color: #ffffff !important;
-  font-weight: 600 !important;
-}
 EOF
 
 # Copy stylesheet to all html directories
 cp -f "$DARK_CSS" /opt/unetlab/html/main/css/azambasha-dark.css 2>/dev/null || true
 cp -f "$DARK_CSS" /opt/unetlab/html/assets-common/css/azambasha-dark.css 2>/dev/null || true
-cp -f "$DARK_CSS" /opt/unetlab/html/login/azambasha-dark.css 2>/dev/null || true
+rm -f /opt/unetlab/html/login/azambasha-dark.css 2>/dev/null || true
 chmod 0644 /opt/unetlab/html/themes/default/css/azambasha-dark.css \
            /opt/unetlab/html/main/css/azambasha-dark.css \
-           /opt/unetlab/html/assets-common/css/azambasha-dark.css \
-           /opt/unetlab/html/login/azambasha-dark.css 2>/dev/null || true
+           /opt/unetlab/html/assets-common/css/azambasha-dark.css 2>/dev/null || true
 
-# 2. Inject stylesheet link into UI HTML templates
+# 2. Inject stylesheet link into UI HTML templates (excluding login which has its own cyber-glass theme)
 INJECT_TAG='<link rel="stylesheet" id="azambasha-dark-theme" href="/themes/default/css/azambasha-dark.css">'
+
+# Ensure login page uses its dedicated futuristic cyber-glass design system
+sed -i '/id="azambasha-dark-theme"/d' /opt/unetlab/html/login/index.html 2>/dev/null || true
 
 for html_file in \
     "/opt/unetlab/html/themes/default/index.html" \
     "/opt/unetlab/html/main/index.html" \
-    "/opt/unetlab/html/index.html" \
-    "/opt/unetlab/html/login/index.html"; do
+    "/opt/unetlab/html/index.html"; do
     if [ -f "$html_file" ]; then
         # Remove any duplicate link tags first
         sed -i '/id="azambasha-dark-theme"/d' "$html_file" 2>/dev/null || true
